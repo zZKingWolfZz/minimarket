@@ -1,0 +1,24 @@
+# Target folder
+target/
+
+# IDE directories
+.settings/
+.vscode/
+.metadata/
+.classpath
+.project
+
+# Local toolchains/binaries
+jdk17/
+jdk17.zip
+maven/
+maven.zip
+
+# Logs
+logs/
+*.log
+
+# Windows OS files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
