@@ -93,11 +93,11 @@ public class VentasController {
         public void actionPerformed(ActionEvent e) {
             String dni = view.getDniCliente();
             if (dni.isEmpty() || dni.equals("Ingrese DNI de Cliente...")) {
-                view.mostrarMensaje("La venta no está permitida si no se ha asignado un cliente. Por favor, ingrese el DNI del cliente.", true);
+                view.mostrarMensaje("La venta no está permitida si no se ha asignado un cliente. Por favor, ingrese el DNI/RUC del cliente.", true);
                 return;
             }
-            if (dni.length() != 8) {
-                view.mostrarMensaje("El DNI del cliente debe tener exactamente 8 dígitos.", true);
+            if (dni.length() != 8 && dni.length() != 11) {
+                view.mostrarMensaje("El DNI/RUC del cliente debe tener exactamente 8 u 11 dígitos.", true);
                 return;
             }
 

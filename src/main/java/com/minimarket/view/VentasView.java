@@ -69,8 +69,22 @@ public class VentasView extends JPanel {
         lblPrecioTotalVal = new JLabel("S/0.00");
         btnAgregarAlCarrito = new JButton();
 
-        // 1. MAIN WORKSPACE (Center Panel)
-        add(createMainContent(), BorderLayout.CENTER);
+        // 1. MAIN WORKSPACE (Center Panel wrapped in a JScrollPane for lower resolution support)
+        JPanel mainContent = createMainContent();
+        ScrollablePanel scrollablePanel = new ScrollablePanel(new BorderLayout());
+        scrollablePanel.setOpaque(false);
+        scrollablePanel.setPreferredSize(new Dimension(850, 680));
+        scrollablePanel.add(mainContent, BorderLayout.CENTER);
+
+        JScrollPane mainScrollPane = new JScrollPane(scrollablePanel);
+        mainScrollPane.setBorder(null);
+        mainScrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        mainScrollPane.setHorizontalScrollBarPolicy(ScrollPaneConstants.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        mainScrollPane.setVerticalScrollBarPolicy(ScrollPaneConstants.VERTICAL_SCROLLBAR_AS_NEEDED);
+        mainScrollPane.getViewport().setBackground(new Color(248, 250, 252));
+        mainScrollPane.setBackground(new Color(248, 250, 252));
+
+        add(mainScrollPane, BorderLayout.CENTER);
 
         // 2. Suggestions Popup setup
         initSuggestionsPopup();
@@ -900,14 +914,14 @@ public class VentasView extends JPanel {
 
     public Cliente getSelectedCliente() {
         String dni = txtDniCliente.getText().trim();
-        if (dni.isEmpty() || dni.equals("Ingrese DNI de Cliente...") || dni.length() != 8) {
+        if (dni.isEmpty() || dni.equals("Ingrese DNI de Cliente...") || (dni.length() != 8 && dni.length() != 11)) {
             return null;
         }
 
-        // 1. Check if the client already exists in cbClientes
+        // 1. Check if the client already exists in cbClientes (trimmed and case-insensitive)
         for (int i = 0; i < cbClientes.getItemCount(); i++) {
             Cliente c = cbClientes.getItemAt(i);
-            if (c != null && c.getDniRuc() != null && c.getDniRuc().equals(dni)) {
+            if (c != null && c.getDniRuc() != null && c.getDniRuc().trim().equalsIgnoreCase(dni)) {
                 return c;
             }
         }
@@ -958,53 +972,69 @@ public class VentasView extends JPanel {
             return;
         }
 
-        // We check if the DNI is exactly 8 digits long
-        if (dni.length() == 8) {
-            // 1. Check if it already exists locally to show instant feedback and autofill
-            Cliente locallyFound = null;
-            for (int i = 0; i < cbClientes.getItemCount(); i++) {
-                Cliente c = cbClientes.getItemAt(i);
-                if (c != null && c.getDniRuc() != null && c.getDniRuc().equals(dni)) {
-                    locallyFound = c;
-                    break;
-                }
+        // 1. Check if it already exists locally to show instant feedback and autofill (case-insensitive & trimmed)
+        Cliente locallyFound = null;
+        for (int i = 0; i < cbClientes.getItemCount(); i++) {
+            Cliente c = cbClientes.getItemAt(i);
+            if (c != null && c.getDniRuc() != null && c.getDniRuc().trim().equalsIgnoreCase(dni)) {
+                locallyFound = c;
+                break;
             }
+        }
 
-            if (locallyFound != null) {
-                lblClienteInfo.setText("Cliente registrado: " + locallyFound.toString());
-                lblClienteInfo.setIcon(new SuccessIcon());
-                lblClienteInfo.setForeground(new Color(34, 197, 94)); // Green-500
-                
-                txtNombreCliente.setText(locallyFound.getNombre());
-                txtNombreCliente.setForeground(new Color(15, 23, 42)); // Active Slate 900
-                
-                String apPaterno = locallyFound.getApellidoPaterno();
-                String apMaterno = locallyFound.getApellidoMaterno();
-                String apellidos = ((apPaterno != null ? apPaterno : "") + " " + (apMaterno != null ? apMaterno : "")).trim();
-                txtApellidoCliente.setText(apellidos.isEmpty() ? "" : apellidos);
-                txtApellidoCliente.setForeground(new Color(15, 23, 42)); // Active Slate 900
-                return;
-            }
+        if (locallyFound != null) {
+            lblClienteInfo.setText("Cliente registrado: " + locallyFound.toString());
+            lblClienteInfo.setIcon(new SuccessIcon());
+            lblClienteInfo.setForeground(new Color(34, 197, 94)); // Green-500
+            
+            txtNombreCliente.setText(locallyFound.getNombre());
+            txtNombreCliente.setForeground(new Color(15, 23, 42)); // Active Slate 900
+            
+            String apPaterno = locallyFound.getApellidoPaterno();
+            String apMaterno = locallyFound.getApellidoMaterno();
+            String apellidos = ((apPaterno != null ? apPaterno : "") + " " + (apMaterno != null ? apMaterno : "")).trim();
+            txtApellidoCliente.setText(apellidos.isEmpty() ? "" : apellidos);
+            txtApellidoCliente.setForeground(new Color(15, 23, 42)); // Active Slate 900
+            return;
+        }
 
-            // 2. Otherwise, notify cashier they can register it manually
+        // 2. Otherwise, check DNI/RUC length constraints
+        if (dni.length() == 8 || dni.length() == 11) {
             lblClienteInfo.setText("Cliente nuevo. Ingrese nombre y apellido manual.");
             lblClienteInfo.setIcon(new InfoIcon());
             lblClienteInfo.setForeground(new Color(24, 119, 242)); // Blue-500
 
-            // Clear input fields and leave them editable for manual registration
-            txtNombreCliente.setText("Ingrese Nombre de Cliente...");
-            txtNombreCliente.setForeground(new Color(148, 163, 184));
-            txtApellidoCliente.setText("Ingrese Apellidos de Cliente...");
-            txtApellidoCliente.setForeground(new Color(148, 163, 184));
-
-        } else if (dni.length() > 8) {
-            lblClienteInfo.setText("DNI inválido (máximo 8 dígitos)");
+            // Restore placeholder texts if they were filled previously
+            if (!txtNombreCliente.getText().equals("Ingrese Nombre de Cliente...") && 
+                !txtNombreCliente.getForeground().equals(new Color(148, 163, 184))) {
+                txtNombreCliente.setText("Ingrese Nombre de Cliente...");
+                txtNombreCliente.setForeground(new Color(148, 163, 184));
+            }
+            if (!txtApellidoCliente.getText().equals("Ingrese Apellidos de Cliente...") && 
+                !txtApellidoCliente.getForeground().equals(new Color(148, 163, 184))) {
+                txtApellidoCliente.setText("Ingrese Apellidos de Cliente...");
+                txtApellidoCliente.setForeground(new Color(148, 163, 184));
+            }
+        } else if (dni.length() > 11) {
+            lblClienteInfo.setText("DNI/RUC inválido (máx 11 dígitos)");
             lblClienteInfo.setIcon(new AlertIcon());
             lblClienteInfo.setForeground(new Color(239, 68, 68)); // Red-500
         } else {
-            lblClienteInfo.setText("Ingrese DNI de 8 dígitos...");
+            lblClienteInfo.setText("Ingrese DNI (8 dígitos) o RUC (11 dígitos)...");
             lblClienteInfo.setIcon(new InfoIcon());
             lblClienteInfo.setForeground(new Color(148, 163, 184));
+
+            // Restore placeholder texts if they were filled previously
+            if (!txtNombreCliente.getText().equals("Ingrese Nombre de Cliente...") && 
+                !txtNombreCliente.getForeground().equals(new Color(148, 163, 184))) {
+                txtNombreCliente.setText("Ingrese Nombre de Cliente...");
+                txtNombreCliente.setForeground(new Color(148, 163, 184));
+            }
+            if (!txtApellidoCliente.getText().equals("Ingrese Apellidos de Cliente...") && 
+                !txtApellidoCliente.getForeground().equals(new Color(148, 163, 184))) {
+                txtApellidoCliente.setText("Ingrese Apellidos de Cliente...");
+                txtApellidoCliente.setForeground(new Color(148, 163, 184));
+            }
         }
     }
 
@@ -1108,6 +1138,42 @@ public class VentasView extends JPanel {
             g2.setColor(new Color(226, 232, 240));
             g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, radius, radius);
             g2.dispose();
+        }
+    }
+
+    // Scrollable Panel that dynamically tracks parent viewport size
+    private static class ScrollablePanel extends JPanel implements Scrollable {
+        public ScrollablePanel(LayoutManager layout) {
+            super(layout);
+        }
+
+        @Override
+        public Dimension getPreferredScrollableViewportSize() {
+            return getPreferredSize();
+        }
+
+        @Override
+        public int getScrollableUnitIncrement(Rectangle visibleRect, int orientation, int direction) {
+            return 16;
+        }
+
+        @Override
+        public int getScrollableBlockIncrement(Rectangle visibleRect, int orientation, int direction) {
+            return 64;
+        }
+
+        @Override
+        public boolean getScrollableTracksViewportWidth() {
+            return true;
+        }
+
+        @Override
+        public boolean getScrollableTracksViewportHeight() {
+            if (getParent() instanceof JViewport) {
+                JViewport viewport = (JViewport) getParent();
+                return viewport.getHeight() > getPreferredSize().height;
+            }
+            return false;
         }
     }
 
