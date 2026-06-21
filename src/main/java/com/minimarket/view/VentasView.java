@@ -57,6 +57,7 @@ public class VentasView extends JPanel {
     public VentasView() {
         setPreferredSize(new Dimension(850, 680));
         initComponents();
+        initBarcodeScannerRedirector();
     }
 
     private void initComponents() {
@@ -1065,6 +1066,58 @@ public class VentasView extends JPanel {
             txtDniCliente.setForeground(new Color(148, 163, 184));
         }
         updateClienteInfo();
+    }
+
+    private void initBarcodeScannerRedirector() {
+        KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(new KeyEventDispatcher() {
+            private long lastTime = 0;
+            private char lastChar = '\0';
+
+            @Override
+            public boolean dispatchKeyEvent(KeyEvent e) {
+                if (!isShowing()) {
+                    return false;
+                }
+
+                if (e.getID() == KeyEvent.KEY_TYPED) {
+                    long now = System.currentTimeMillis();
+                    long diff = now - lastTime;
+                    lastTime = now;
+
+                    char c = e.getKeyChar();
+                    if (Character.isLetterOrDigit(c) || c == '-' || c == '_') {
+                        Component focusOwner = KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner();
+                        
+                        if (focusOwner != txtSearch) {
+                            if (diff < 50) {
+                                if (focusOwner instanceof javax.swing.text.JTextComponent) {
+                                    javax.swing.text.JTextComponent tc = (javax.swing.text.JTextComponent) focusOwner;
+                                    String text = tc.getText();
+                                    if (text.length() > 0 && text.charAt(text.length() - 1) == lastChar) {
+                                        tc.setText(text.substring(0, text.length() - 1));
+                                    }
+                                }
+                                
+                                txtSearch.requestFocusInWindow();
+                                if (txtSearch.getText().startsWith("Escanee el")) {
+                                    txtSearch.setText("");
+                                    txtSearch.setForeground(new Color(15, 23, 42));
+                                }
+                                
+                                String prefix = (lastChar != '\0') ? String.valueOf(lastChar) : "";
+                                txtSearch.setText(prefix + c);
+                                lastChar = '\0';
+                                return true;
+                            }
+                            lastChar = c;
+                        } else {
+                            lastChar = '\0';
+                        }
+                    }
+                }
+                return false;
+            }
+        });
     }
 
     // --- TABLE MODEL DEFINITION ---
