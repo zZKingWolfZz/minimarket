@@ -124,19 +124,29 @@ El repositorio incluye dos scripts SQL listos para su uso en la raíz del proyec
 
 ---
 
-## 🔨 Instrucciones de Ejecución
+## 🔨 Instrucciones de Ejecución y Compilación
 
-El proyecto está completamente preparado para compilarse y ejecutarse a través de Maven:
+El proyecto está completamente preparado para compilarse, ejecutarse o empaquetarse en un ejecutable de Windows (`.exe`) nativo a través de Maven:
 
 ### Compilar el proyecto
 ```bash
 mvn clean compile
 ```
 
-### Ejecutar la aplicación
+### Ejecutar la aplicación desde la consola
 ```bash
 mvn exec:java
 ```
+
+### Generar el archivo ejecutable (`.exe`) para Windows
+El proyecto cuenta con la integración automática de `launch4j-maven-plugin`. Para generar un archivo `.exe` autocontenido con todas sus dependencias incluidas (Fat JAR), ejecuta:
+```bash
+mvn clean package -DskipTests
+```
+Una vez terminado el proceso, encontrarás el ejecutable listo para usar en:
+*   📂 `target/MiniMarket.exe`
+
+*(Nota: Requiere que Windows tenga una versión de Java runtime compatible con JDK 21+ configurada, o que se proporcione en el path).*
 
 ---
 
