@@ -2,7 +2,6 @@ package com.minimarket;
 
 import com.minimarket.config.DatabaseConnection;
 import com.minimarket.controller.*;
-import com.minimarket.dao.*;
 import com.minimarket.dao.impl.*;
 import com.minimarket.model.*;
 import com.minimarket.view.*;
@@ -16,7 +15,6 @@ import org.slf4j.LoggerFactory;
 
 import javax.swing.*;
 import java.awt.*;
-import java.awt.event.ActionListener;
 import java.awt.event.MouseListener;
 import java.awt.event.MouseEvent;
 import java.io.File;
@@ -165,6 +163,7 @@ public class AppIntegrationTest {
     }
 
     @Test
+    @SuppressWarnings("unchecked")
     public void testFullE2EIntegrationFlow() throws Exception {
         logger.info("Starting Full E2E Integration Flow with mocked JDBC layer...");
 

@@ -36,6 +36,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.sql.Connection;
@@ -368,12 +369,12 @@ public class ReportesController {
                 }
 
                 String summary = String.format(
-                        "=== REPORTE DE VENTAS - MINI-POS ===\n" +
-                        "Periodo: %s\n" +
-                        "Ventas Totales: S/%,.2f\n" +
-                        "Total Transacciones: %,d\n" +
-                        "Ticket Promedio: S/%,.2f\n" +
-                        "Fecha de Generación: %s\n" +
+                        "=== REPORTE DE VENTAS - MINI-POS ===%n" +
+                        "Periodo: %s%n" +
+                        "Ventas Totales: S/%,.2f%n" +
+                        "Total Transacciones: %,d%n" +
+                        "Ticket Promedio: S/%,.2f%n" +
+                        "Fecha de Generación: %s%n" +
                         "====================================",
                         selectedRange,
                         totalSales,
@@ -708,7 +709,7 @@ public class ReportesController {
                     view.mostrarMensaje("Reporte analítico exportado con éxito a:\n" + fileToSave.getAbsolutePath(), false);
                 }
 
-            } catch (Exception ex) {
+            } catch (IOException | RuntimeException ex) {
                 logger.error("Error al estructurar o guardar el archivo Excel del reporte: ", ex);
                 view.mostrarMensaje("Error al generar el archivo Excel: " + ex.getMessage(), true);
             }

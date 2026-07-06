@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<FindBugsFilter>
+    <!-- Exclude EI_EXPOSE_REP (exposing mutable internal representation) -->
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP"/>
+    </Match>
+    <!-- Exclude EI_EXPOSE_REP2 (incorporating mutable internal representation) -->
+    <Match>
+        <Bug pattern="EI_EXPOSE_REP2"/>
+    </Match>
+    <!-- Exclude Swing GUI View Package specific warning types -->
+    <Match>
+        <Package name="~com\.minimarket\.view.*"/>
+        <Or>
+            <Bug pattern="SE_BAD_FIELD"/>
+            <Bug pattern="SE_BAD_FIELD_STORE"/>
+            <Bug pattern="MC_OVERRIDABLE_METHOD_CALL_IN_CONSTRUCTOR"/>
+            <Bug pattern="SIC_INNER_SHOULD_BE_STATIC_ANON"/>
+            <Bug pattern="SIC_INNER_SHOULD_BE_STATIC"/>
+            <Bug pattern="SS_SHOULD_BE_STATIC"/>
+            <Bug pattern="MS_MUTABLE_COLLECTION_PKGPROTECT"/>
+            <Bug pattern="DLS_DEAD_LOCAL_STORE"/>
+            <Bug pattern="BC_UNCONFIRMED_CAST_OF_RETURN_VALUE"/>
+            <Bug pattern="REC_CATCH_EXCEPTION"/>
+            <Bug pattern="DM_CONVERT_CASE"/>
+            <Bug pattern="IMPROPER_UNICODE"/>
+            <Bug pattern="INFORMATION_EXPOSURE_THROUGH_AN_ERROR_MESSAGE"/>
+            <Bug pattern="UPM_UNCALLED_PRIVATE_METHOD"/>
+        </Or>
+    </Match>
+</FindBugsFilter>

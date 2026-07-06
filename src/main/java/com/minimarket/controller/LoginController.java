@@ -14,8 +14,6 @@ import com.minimarket.view.LoginView;
 import com.minimarket.view.VentasView;
 import com.minimarket.view.CategoriasView;
 import com.minimarket.view.ReportesView;
-import com.minimarket.controller.CategoriasController;
-import com.minimarket.controller.ReportesController;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;

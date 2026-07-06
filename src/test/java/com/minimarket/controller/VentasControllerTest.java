@@ -3,22 +3,16 @@ package com.minimarket.controller;
 import com.minimarket.dao.ClienteDAO;
 import com.minimarket.dao.ProductoDAO;
 import com.minimarket.dao.VentaDAO;
-import com.minimarket.exception.InsufficientStockException;
-import com.minimarket.model.Cliente;
 import com.minimarket.model.Producto;
-import com.minimarket.model.Venta;
 import com.minimarket.view.VentasView;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.math.BigDecimal;
-import java.sql.SQLException;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)

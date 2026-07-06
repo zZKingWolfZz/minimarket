@@ -553,9 +553,8 @@ public class CategoriasAddView extends JPanel {
                     CategoriasView.customPosActive.put(newId, chkActivaPOS.isSelected());
                 } else {
                     // Si no cargó el auto-generado, buscar el maximo ID para registrar el cache
-                    try {
-                        java.sql.Statement st = connection.createStatement();
-                        java.sql.ResultSet rs = st.executeQuery("SELECT MAX(Id_categoria) FROM categoria");
+                    try (java.sql.Statement st = connection.createStatement();
+                         java.sql.ResultSet rs = st.executeQuery("SELECT MAX(Id_categoria) FROM categoria")) {
                         if (rs.next()) {
                             int mid = rs.getInt(1);
                             CategoriasView.customSkuPrefixes.put(mid, txtSkuPrefix.getText().trim());
@@ -564,7 +563,7 @@ public class CategoriasAddView extends JPanel {
                             CategoriasView.customIcons.put(mid, getSelectedIconName());
                             CategoriasView.customPosActive.put(mid, chkActivaPOS.isSelected());
                         }
-                    } catch (Exception ex) {
+                    } catch (SQLException ex) {
                         // ignore
                     }
                 }

@@ -18,6 +18,7 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.FileOutputStream;
 import java.io.File;
+import java.io.IOException;
 import java.sql.SQLException;
 import java.util.List;
 
@@ -198,7 +199,7 @@ public class InventarioController {
                     logger.info("Exportación completada de manera exitosa en: {}", fileToSave.getAbsolutePath());
                     view.mostrarMensaje("Inventario exportado con éxito a:\n" + fileToSave.getAbsolutePath(), false);
 
-                } catch (Exception ex) {
+                } catch (IOException | RuntimeException ex) {
                     logger.error("Error al estructurar o guardar el archivo Excel: ", ex);
                     view.mostrarMensaje("Error al generar el Excel: " + ex.getMessage(), true);
                 }

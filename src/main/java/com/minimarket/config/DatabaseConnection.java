@@ -10,6 +10,7 @@ import java.util.Properties;
 public class DatabaseConnection {
 
     private static DatabaseConnection instance;
+    private static final Object LOCK = new Object();
     private Connection rawConnection;
     private Connection proxyConnection;
     private Properties properties = new Properties();
@@ -49,11 +50,13 @@ public class DatabaseConnection {
         );
     }
 
-    public static synchronized DatabaseConnection getInstance() {
-        if (instance == null) {
-            instance = new DatabaseConnection();
+    public static DatabaseConnection getInstance() {
+        synchronized (LOCK) {
+            if (instance == null) {
+                instance = new DatabaseConnection();
+            }
+            return instance;
         }
-        return instance;
     }
 
     // Returns a proxy connection that is completely immune to database firewall timeouts and drops
