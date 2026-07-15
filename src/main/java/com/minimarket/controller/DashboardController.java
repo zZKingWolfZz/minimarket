@@ -6,6 +6,8 @@ import com.minimarket.model.Venta;
 import com.minimarket.dao.VentaDAO;
 import com.minimarket.view.DashboardView;
 import com.minimarket.view.LoginView;
+import com.minimarket.view.UsuariosAddView;
+import java.sql.Connection;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
@@ -42,6 +44,7 @@ public class DashboardController {
 
         initSessionInfo();
         initListeners();
+        startHealthCheckScheduler();
     }
 
     private void initSessionInfo() {
@@ -59,17 +62,23 @@ public class DashboardController {
             rolesStr = "Sin Rol Asignado";
         }
         view.setLoggedUser(loggedUser.getNombreCompletos(), rolesStr);
+        view.configureMenuForRole(tieneRol("Administrador") ? "Administrador" : "Vendedor");
     }
 
     private void initListeners() {
         view.addDashboardMenuListener(new DashboardMenuListener());
-        if (tieneRol("Administrador") || tieneRol("Cajero")) {
+        view.addLogoutMenuListener(new LogoutListener());
+
+        if (tieneRol("Administrador") || tieneRol("Vendedor")) {
             view.addVentasMenuListener(new VentasMenuListener());
+        }
+
+        if (tieneRol("Administrador")) {
             view.addInventarioMenuListener(new InventarioMenuListener());
             view.addCategoriasMenuListener(new CategoriasMenuListener());
             view.addReportsMenuListener(new ReportsMenuListener());
+            view.addUsuariosMenuListener(new UsuariosMenuListener());
         }
-        view.addLogoutMenuListener(new LogoutListener());
     }
 
     public void showView() {
@@ -155,6 +164,19 @@ public class DashboardController {
         }
     }
 
+    private class UsuariosMenuListener implements ActionListener {
+        @Override
+        public void actionPerformed(ActionEvent e) {
+            try {
+                Connection conn = com.minimarket.config.DatabaseConnection.getInstance().getConnection();
+                UsuariosAddView usersView = new UsuariosAddView(conn);
+                usersView.setVisible(true);
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+            }
+        }
+    }
+
     private class LogoutListener implements ActionListener {
         @Override
         public void actionPerformed(ActionEvent e) {
@@ -163,5 +185,19 @@ public class DashboardController {
             loginView.showStatusMessage("Sesion cerrada correctamente.", false);
             loginView.setVisible(true);
         }
+    }
+
+    private void startHealthCheckScheduler() {
+        javax.swing.Timer timer = new javax.swing.Timer(10000, new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                boolean isConnected = com.minimarket.config.DatabaseConnection.getInstance().checkHealth();
+                view.setDatabaseStatus(isConnected);
+            }
+        });
+        // Run once immediately
+        boolean isConnected = com.minimarket.config.DatabaseConnection.getInstance().checkHealth();
+        view.setDatabaseStatus(isConnected);
+        timer.start();
     }
 }

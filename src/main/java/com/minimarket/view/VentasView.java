@@ -1070,8 +1070,8 @@ public class VentasView extends JPanel {
 
     private void initBarcodeScannerRedirector() {
         KeyboardFocusManager.getCurrentKeyboardFocusManager().addKeyEventDispatcher(new KeyEventDispatcher() {
+            private final StringBuilder buffer = new StringBuilder();
             private long lastTime = 0;
-            private char lastChar = '\0';
 
             @Override
             public boolean dispatchKeyEvent(KeyEvent e) {
@@ -1086,32 +1086,41 @@ public class VentasView extends JPanel {
 
                     char c = e.getKeyChar();
                     if (Character.isLetterOrDigit(c) || c == '-' || c == '_') {
-                        Component focusOwner = KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner();
-                        
-                        if (focusOwner != txtSearch) {
-                            if (diff < 50) {
-                                if (focusOwner instanceof javax.swing.text.JTextComponent) {
-                                    javax.swing.text.JTextComponent tc = (javax.swing.text.JTextComponent) focusOwner;
-                                    String text = tc.getText();
-                                    if (text.length() > 0 && text.charAt(text.length() - 1) == lastChar) {
-                                        tc.setText(text.substring(0, text.length() - 1));
+                        // Keyboard wedge barcode scanners type extremely fast (typically < 25ms per key)
+                        if (diff < 25) {
+                            buffer.append(c);
+                            
+                            // If 3 consecutive keys are typed this fast, we classify it as a scanner scan
+                            if (buffer.length() >= 3) {
+                                Component focusOwner = KeyboardFocusManager.getCurrentKeyboardFocusManager().getFocusOwner();
+                                
+                                if (focusOwner != txtSearch) {
+                                    // Remove the fast-typed characters already written to the previously focused component
+                                    if (focusOwner instanceof javax.swing.text.JTextComponent) {
+                                        javax.swing.text.JTextComponent tc = (javax.swing.text.JTextComponent) focusOwner;
+                                        String text = tc.getText();
+                                        int lenToRemove = buffer.length() - 1;
+                                        if (text.length() >= lenToRemove) {
+                                            tc.setText(text.substring(0, text.length() - lenToRemove));
+                                        }
                                     }
+                                    
+                                    txtSearch.requestFocusInWindow();
+                                    if (txtSearch.getText().startsWith("Escanee el")) {
+                                        txtSearch.setText("");
+                                        txtSearch.setForeground(new Color(15, 23, 42));
+                                    }
+                                    
+                                    // Append the buffered prefix to the search box
+                                    txtSearch.setText(txtSearch.getText() + buffer.toString());
+                                    buffer.setLength(0); // Reset buffer
+                                    return true;
                                 }
-                                
-                                txtSearch.requestFocusInWindow();
-                                if (txtSearch.getText().startsWith("Escanee el")) {
-                                    txtSearch.setText("");
-                                    txtSearch.setForeground(new Color(15, 23, 42));
-                                }
-                                
-                                String prefix = (lastChar != '\0') ? String.valueOf(lastChar) : "";
-                                txtSearch.setText(prefix + c);
-                                lastChar = '\0';
-                                return true;
                             }
-                            lastChar = c;
                         } else {
-                            lastChar = '\0';
+                            // Human typed slowly or paused, clear and start new buffer
+                            buffer.setLength(0);
+                            buffer.append(c);
                         }
                     }
                 }

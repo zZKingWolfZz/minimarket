@@ -1121,4 +1121,9 @@ public class CategoriasEditView extends JPanel {
         @Override
         public int getIconHeight() { return size; }
     }
+
+    @Override
+    protected final void finalize() {
+        // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
+    }
 }

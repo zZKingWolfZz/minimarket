@@ -22,6 +22,8 @@ import com.minimarket.view.CategoriasView;
 import com.minimarket.view.ReportesView;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.minimarket.view.SetupAdminView;
+import com.minimarket.config.DatabaseInitializer;
 
 import javax.swing.*;
 import java.sql.Connection;
@@ -42,6 +44,22 @@ public class App {
 
             try {
                 Connection connection = DatabaseConnection.getInstance().getConnection();
+
+                // Validate actual database connectivity at startup
+                if (!DatabaseConnection.getInstance().checkHealth()) {
+                    throw new java.sql.SQLException("MySQL Server is offline or unreachable.");
+                }
+
+                // 1. Initialize schema automatically if not exists
+                DatabaseInitializer.initializeDatabase(connection);
+
+                // 2. Check if first run (no users)
+                if (DatabaseInitializer.isDatabaseEmpty(connection)) {
+                    logger.info("Database is empty. Launching SetupAdminView for first-run administrator setup.");
+                    SetupAdminView setupAdmin = new SetupAdminView(connection);
+                    setupAdmin.setVisible(true);
+                    return;
+                }
 
                 String autoLogin = DatabaseConnection.getInstance().getProperty("db.autologin");
                 if ("true".equalsIgnoreCase(autoLogin)) {

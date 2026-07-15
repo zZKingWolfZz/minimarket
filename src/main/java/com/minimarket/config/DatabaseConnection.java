@@ -11,6 +11,7 @@ public class DatabaseConnection {
 
     private static DatabaseConnection instance;
     private static final Object LOCK = new Object();
+    private final Object connectionLock = new Object();
     private Connection rawConnection;
     private Connection proxyConnection;
     private Properties properties = new Properties();
@@ -69,20 +70,38 @@ public class DatabaseConnection {
     }
 
     // Checks the raw connection health and reconnects automatically if dropped
-    private synchronized Connection getActiveRawConnection() throws SQLException {
-        if (rawConnection == null || rawConnection.isClosed() || !rawConnection.isValid(2)) {
-            if (rawConnection != null) {
-                try {
-                    rawConnection.close();
-                } catch (SQLException e) {
-                    // Silently ignore
+    private Connection getActiveRawConnection() throws SQLException {
+        synchronized (connectionLock) {
+            if (rawConnection == null || rawConnection.isClosed() || !rawConnection.isValid(2)) {
+                if (rawConnection != null) {
+                    try {
+                        rawConnection.close();
+                    } catch (SQLException e) {
+                        // Silently ignore
+                    }
                 }
+                String url = properties.getProperty("db.url");
+                String user = properties.getProperty("db.username");
+                String password = properties.getProperty("db.password");
+                rawConnection = DriverManager.getConnection(url, user, password);
             }
-            String url = properties.getProperty("db.url");
-            String user = properties.getProperty("db.username");
-            String password = properties.getProperty("db.password");
-            rawConnection = DriverManager.getConnection(url, user, password);
+            return rawConnection;
         }
-        return rawConnection;
+    }
+
+    public boolean checkHealth() {
+        synchronized (connectionLock) {
+            try {
+                Connection conn = getActiveRawConnection();
+                return conn != null && !conn.isClosed() && conn.isValid(1);
+            } catch (SQLException e) {
+                return false;
+            }
+        }
+    }
+
+    @Override
+    protected final void finalize() {
+        // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
     }
 }

@@ -25,6 +25,7 @@ public class DashboardView extends JFrame {
     private SidebarButton btnDashboard;
     private SidebarButton btnCategories;
     private SidebarButton btnReports;
+    private SidebarButton btnUsuarios;
 
     public DashboardView() {
         initComponents();
@@ -70,6 +71,7 @@ public class DashboardView extends JFrame {
         btnInventario = new SidebarButton("Stock", new BoxIcon(false), false);
         btnCategories = new SidebarButton("Categories", new CategoryIcon(), false);
         btnReports = new SidebarButton("Reports", new ReportsIcon(), false);
+        btnUsuarios = new SidebarButton("Usuarios", new UsersIcon(), false);
 
         menuContainer.add(btnDashboard);
         menuContainer.add(Box.createVerticalStrut(6));
@@ -80,6 +82,8 @@ public class DashboardView extends JFrame {
         menuContainer.add(btnCategories);
         menuContainer.add(Box.createVerticalStrut(6));
         menuContainer.add(btnReports);
+        menuContainer.add(Box.createVerticalStrut(6));
+        menuContainer.add(btnUsuarios);
 
         // Sidebar - Contenedor Norte
         JPanel sidebarNorth = new JPanel(new BorderLayout());
@@ -271,6 +275,17 @@ public class DashboardView extends JFrame {
         ((SidebarButton) btnInventario).setActive(activeBtn == btnInventario);
         btnCategories.setActive(activeBtn == btnCategories);
         btnReports.setActive(activeBtn == btnReports);
+        btnUsuarios.setActive(activeBtn == btnUsuarios);
+        sidebarPanel.repaint();
+    }
+
+    public void configureMenuForRole(String role) {
+        boolean isAdmin = "Administrador".equalsIgnoreCase(role);
+        btnInventario.setVisible(isAdmin);
+        btnCategories.setVisible(isAdmin);
+        btnReports.setVisible(isAdmin);
+        btnUsuarios.setVisible(isAdmin);
+        sidebarPanel.revalidate();
         sidebarPanel.repaint();
     }
 
@@ -290,6 +305,16 @@ public class DashboardView extends JFrame {
         lblSidebarUserName.setText(nombreCompleto.equals("Invitado") ? "Store Admin" : nombreCompleto);
         lblSidebarUserRole.setText(rol.equals("Ninguno") ? "Manager" : rol);
         lblFooterUser.setText("USER: " + nombreCompleto.toUpperCase());
+    }
+
+    public void setDatabaseStatus(boolean connected) {
+        if (connected) {
+            lblFooterDB.setText("DB: CONNECTED");
+            lblFooterDB.setForeground(new Color(16, 185, 129));
+        } else {
+            lblFooterDB.setText("DB: OFFLINE");
+            lblFooterDB.setForeground(new Color(239, 68, 68));
+        }
     }
 
     public void setHeaderTitle(String title) {
@@ -351,6 +376,13 @@ public class DashboardView extends JFrame {
     public void addReportsMenuListener(ActionListener l) {
         btnReports.addActionListener(e -> {
             setActiveSidebarButton(btnReports);
+            l.actionPerformed(e);
+        });
+    }
+
+    public void addUsuariosMenuListener(ActionListener l) {
+        btnUsuarios.addActionListener(e -> {
+            setActiveSidebarButton(btnUsuarios);
             l.actionPerformed(e);
         });
     }
@@ -1691,6 +1723,25 @@ public class DashboardView extends JFrame {
         public int getIconWidth() { return 12; }
         @Override
         public int getIconHeight() { return 12; }
+    }
+
+    private static class UsersIcon implements Icon {
+        @Override
+        public void paintIcon(Component c, Graphics g, int x, int y) {
+            Graphics2D g2 = (Graphics2D) g.create();
+            g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+            g2.setColor(new Color(100, 116, 139));
+            g2.setStroke(new BasicStroke(1.6f, BasicStroke.CAP_ROUND, BasicStroke.JOIN_ROUND));
+            g2.drawOval(x + 3, y + 2, 5, 5);
+            g2.drawArc(x + 1, y + 8, 9, 7, 0, 180);
+            g2.drawOval(x + 10, y + 4, 4, 4);
+            g2.drawArc(x + 8, y + 9, 8, 6, 0, 180);
+            g2.dispose();
+        }
+        @Override
+        public int getIconWidth() { return 16; }
+        @Override
+        public int getIconHeight() { return 16; }
     }
 }
 

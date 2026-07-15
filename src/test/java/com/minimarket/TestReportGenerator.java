@@ -1,3 +1,413 @@
+package com.minimarket;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.InputStreamReader;
+import java.nio.file.StandardCopyOption;
+import java.util.ArrayList;
+import java.util.List;
+
+public class TestReportGenerator {
+
+    private static final Logger logger = LoggerFactory.getLogger(TestReportGenerator.class);
+
+    private static void decorateSpotbugsHtml(File file) {
+        try {
+            if (!file.exists()) return;
+            String content = java.nio.file.Files.readString(file.toPath());
+            
+            // 1. Inyectar link a fuentes de Google en head
+            String googleFonts = """
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+""";
+            
+            // 2. Definir nuestro estilo premium oscuro
+            String premiumStyle = """
+    <style type="text/css">
+        :root {
+            --bg: #0b0f19;
+            --bg-gradient: radial-gradient(circle at 50% 0%, #1e1b4b 0%, #0b0f19 80%);
+            --card-bg: rgba(17, 24, 39, 0.75);
+            --border: rgba(255, 255, 255, 0.08);
+            --text: #f3f4f6;
+            --text-secondary: #9ca3af;
+            --primary: #6366f1;
+            --primary-glow: rgba(99, 102, 241, 0.15);
+            --success: #10b981;
+            --warning: #f59e0b;
+            --danger: #ef4444;
+        }
+
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg);
+            background-image: var(--bg-gradient);
+            color: var(--text);
+            min-height: 100vh;
+            padding: 40px 20px;
+            margin: 0;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 20px;
+            background: linear-gradient(135deg, #a5b4fc 0%, #6366f1 50%, #d8b4fe 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            letter-spacing: -0.025em;
+            text-align: center;
+        }
+
+        h2 {
+            font-size: 1.4rem;
+            color: #a5b4fc;
+            margin-top: 45px;
+            margin-bottom: 20px;
+            border-left: 4px solid var(--primary);
+            padding-left: 12px;
+            font-weight: 600;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+            margin-bottom: 30px;
+            backdrop-filter: blur(16px);
+        }
+
+        th {
+            background: rgba(99, 102, 241, 0.15);
+            color: #a5b4fc;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            font-weight: 600;
+            letter-spacing: 0.05em;
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+            text-align: left;
+        }
+
+        td {
+            padding: 16px;
+            border-bottom: 1px solid var(--border);
+            font-size: 0.95rem;
+            color: #e5e7eb;
+        }
+
+        .tablerow0 {
+            background: rgba(255, 255, 255, 0.01);
+        }
+
+        .tablerow1 {
+            background: rgba(255, 255, 255, 0.03);
+        }
+
+        .tablerow0:hover, .tablerow1:hover {
+            background: rgba(99, 102, 241, 0.08) !important;
+        }
+
+        .detailrow0, .detailrow1 {
+            background: rgba(2, 6, 17, 0.6) !important;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            color: #cbd5e1;
+            white-space: pre-wrap;
+        }
+
+        /* Warning Badges */
+        .priority-1, .priority-2, .priority-3, .priority-4 {
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-weight: 600;
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            display: inline-block;
+        }
+
+        .priority-1 {
+            color: #fca5a5 !important;
+            background: rgba(239, 68, 68, 0.15);
+            border: 1px solid rgba(239, 68, 68, 0.3);
+        }
+
+        .priority-2 {
+            color: #fcd34d !important;
+            background: rgba(245, 158, 11, 0.15);
+            border: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        .priority-3 {
+            color: #a7f3d0 !important;
+            background: rgba(16, 185, 129, 0.15);
+            border: 1px solid rgba(16, 185, 129, 0.3);
+        }
+
+        .priority-4 {
+            color: #93c5fd !important;
+            background: rgba(59, 130, 246, 0.15);
+            border: 1px solid rgba(59, 130, 246, 0.3);
+        }
+
+        a {
+            color: #818cf8;
+            text-decoration: none;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        a:hover {
+            color: #a5b4fc;
+            text-decoration: underline;
+        }
+
+        ul {
+            list-style-type: none;
+            padding: 0;
+            margin: 0 0 30px 0;
+            display: grid;
+            gap: 10px;
+        }
+
+        li {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            padding: 14px 20px;
+            border-radius: 12px;
+            font-family: 'JetBrains Mono', monospace;
+            font-size: 0.85rem;
+            color: #cbd5e1;
+        }
+
+        /* Action buttons layout */
+        .btn-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 40px;
+        }
+
+        .btn-back {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--text);
+            border: 1px solid var(--border);
+            transition: all 0.3s;
+            cursor: pointer;
+            text-decoration: none;
+        }
+
+        .btn-back:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+    </style>
+""";
+
+            // Reemplazar la sección <style> antigua por la nueva
+            content = content.replaceAll("(?s)<style type=\"text/css\">.*?</style>", premiumStyle);
+            
+            // Inyectar fuentes en head
+            content = content.replace("<head>", "<head>\n" + googleFonts);
+            
+            // Envolver cuerpo en container y añadir botón de volver al dashboard
+            String backButtonHtml = """
+    <div class="btn-container">
+        <a href="reporte_pruebas.html" class="btn-back">
+            <span>⬅️</span> Volver al Dashboard de Pruebas
+        </a>
+    </div>
+""";
+            content = content.replace("<body>", "<body>\n<div class=\"container\">");
+            content = content.replace("</body>", backButtonHtml + "\n</div>\n</body>");
+            
+            java.nio.file.Files.writeString(file.toPath(), content);
+            logger.info("SpotBugs HTML report decorated successfully.");
+        } catch (Exception e) {
+            logger.error("Failed to decorate SpotBugs HTML: ", e);
+        }
+    }
+
+    private static void runSpotbugs() {
+        logger.info("Executing SpotBugs static analysis via Maven...");
+        try {
+            boolean isWindows = System.getProperty("os.name").toLowerCase().contains("win");
+            List<String> command = new ArrayList<>();
+            if (isWindows) {
+                command.add("cmd.exe");
+                command.add("/c");
+                command.add("mvn.cmd");
+            } else {
+                command.add("mvn");
+            }
+            command.add("spotbugs:spotbugs");
+
+            ProcessBuilder pb = new ProcessBuilder(command);
+            pb.directory(new File("."));
+            pb.redirectErrorStream(true);
+            
+            Process process = pb.start();
+            try (BufferedReader reader = new BufferedReader(new InputStreamReader(process.getInputStream()))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    logger.info("[SpotBugs] " + line);
+                }
+            }
+            
+            int exitCode = process.waitFor();
+            if (exitCode == 0) {
+                logger.info("SpotBugs completed successfully.");
+                File targetSiteDir = new File("target/site");
+                if (!targetSiteDir.exists()) {
+                    targetSiteDir.mkdirs();
+                }
+                File reportFile = new File(targetSiteDir, "spotbugs.html");
+                if (!reportFile.exists()) {
+                    logger.info("No bugs found. Writing success SpotBugs HTML page to target/site/spotbugs.html...");
+                    String successHtml = """
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Reporte de SpotBugs - Limpio</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0b0f19;
+            --bg-gradient: radial-gradient(circle at 50% 0%, #1e1b4b 0%, #0b0f19 80%);
+            --card-bg: rgba(17, 24, 39, 0.7);
+            --border: rgba(255, 255, 255, 0.08);
+            --text: #f3f4f6;
+            --text-secondary: #9ca3af;
+            --success: #10b981;
+        }
+        body {
+            font-family: 'Outfit', sans-serif;
+            background: var(--bg);
+            background-image: var(--bg-gradient);
+            color: var(--text);
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            margin: 0;
+        }
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 20px;
+            padding: 40px;
+            text-align: center;
+            max-width: 500px;
+            backdrop-filter: blur(16px);
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+        }
+        .icon {
+            font-size: 4rem;
+            color: var(--success);
+            margin-bottom: 20px;
+        }
+        h1 {
+            font-size: 1.8rem;
+            font-weight: 600;
+            margin-bottom: 10px;
+        }
+        p {
+            color: var(--text-secondary);
+            font-size: 1rem;
+            line-height: 1.5;
+            margin-bottom: 30px;
+        }
+        .btn-back {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            background: rgba(255, 255, 255, 0.04);
+            color: var(--text);
+            border: 1px solid var(--border);
+            text-decoration: none;
+            transition: all 0.3s;
+            cursor: pointer;
+        }
+        .btn-back:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: rgba(255, 255, 255, 0.2);
+            transform: translateY(-2px);
+        }
+    </style>
+</head>
+<body>
+    <div class="card">
+        <div class="icon">🛡️</div>
+        <h1>Análisis de SpotBugs Limpio</h1>
+        <p>¡Felicidades! La herramienta de análisis estático SpotBugs se ejecutó correctamente y no encontró ninguna anomalía ni bug en el código fuente de tu proyecto.</p>
+        <a href="reporte_pruebas.html" class="btn-back">
+            <span>⬅️</span> Volver al Dashboard
+        </a>
+    </div>
+</body>
+</html>
+""";
+                    java.nio.file.Files.writeString(reportFile.toPath(), successHtml);
+                    logger.info("SpotBugs success report generated at: " + reportFile.getAbsolutePath());
+                } else {
+                    logger.info("SpotBugs report exists. Decorating HTML...");
+                    decorateSpotbugsHtml(reportFile);
+                }
+            } else {
+                logger.warn("SpotBugs exited with non-zero exit code: " + exitCode);
+            }
+        } catch (Exception e) {
+            logger.error("Error running SpotBugs: ", e);
+        }
+    }
+
+    public static void generateHtmlReport() {
+        try {
+            runSpotbugs();
+            File logFile = new File("logs/test_execution.log");
+            List<String> logLines = new ArrayList<>();
+            if (logFile.exists()) {
+                logLines = java.nio.file.Files.readAllLines(logFile.toPath());
+            }
+
+            StringBuilder logsJson = new StringBuilder();
+            for (int i = 0; i < logLines.size(); i++) {
+                logsJson.append("            \"").append(escapeJsonString(logLines.get(i))).append("\"");
+                if (i < logLines.size() - 1) {
+                    logsJson.append(",\n");
+                }
+            }
+
+            String htmlTemplate = """
 <!DOCTYPE html>
 <html lang="es">
 <head>
@@ -26,7 +436,7 @@
             --danger-glow: rgba(239, 68, 68, 0.15);
             --card-hover-border: rgba(99, 102, 241, 0.35);
         }
-
+        
         * {
             box-sizing: border-box;
             margin: 0;
@@ -116,7 +526,7 @@
             box-shadow: 0 0 15px rgba(239, 68, 68, 0.15);
             animation: pulse-border 2s infinite;
         }
-
+        
         .card-stat.errors.active::before {
             background: var(--danger);
         }
@@ -711,10 +1121,13 @@
 
         <!-- Action Links -->
         <div class="action-bar">
-            <a href="target/site/jacoco/index.html" target="_blank" class="btn-action btn-action-primary">
+            <a href="jacoco/index.html" target="_blank" class="btn-action btn-action-primary">
                 <span>📊</span> Ver Reporte de Cobertura JaCoCo (Línea por Línea)
             </a>
-            <a href="logs/test_execution.log" target="_blank" class="btn-action btn-action-secondary">
+            <a href="spotbugs.html" target="_blank" class="btn-action btn-action-secondary">
+                <span>🛡️</span> Ver Análisis de SpotBugs
+            </a>
+            <a href="../../logs/test_execution.log" target="_blank" class="btn-action btn-action-secondary">
                 <span>📄</span> Ver Log de Texto Plano (logback)
             </a>
         </div>
@@ -750,99 +1163,7 @@
     <script>
         // Injected logs from Java
         const rawLogs = [
-            "2026-07-05 21:06:37 [main] INFO  com.minimarket.AppIntegrationTest - ========================================= STARTING TEST SETUP =========================================",
-            "2026-07-05 21:06:38 [main] INFO  com.minimarket.AppIntegrationTest - Successfully injected mock database connection singleton.",
-            "2026-07-05 21:06:38 [main] INFO  com.minimarket.AppIntegrationTest - Starting Full E2E Integration Flow with mocked JDBC layer...",
-            "2026-07-05 21:06:38 [AWT-EventQueue-0] INFO  com.minimarket.AppIntegrationTest - Views and LoginController instantiated.",
-            "2026-07-05 21:06:38 [AWT-EventQueue-0] INFO  com.minimarket.AppIntegrationTest - Credentials entered. Clicking Login Button...",
-            "2026-07-05 21:06:39 [main] INFO  com.minimarket.AppIntegrationTest - Authentication integration check passed. Dashboard loaded.",
-            "2026-07-05 21:06:39 [AWT-EventQueue-0] INFO  com.minimarket.AppIntegrationTest - Navigating to Ventas panel via Dashboard menu...",
-            "2026-07-05 21:06:39 [main] INFO  com.minimarket.AppIntegrationTest - Verifying VentasController flow...",
-            "2026-07-05 21:06:39 [AWT-EventQueue-0] INFO  com.minimarket.AppIntegrationTest - Simulated selecting product 'Galletas Soda' and quantity 5.",
-            "2026-07-05 21:06:39 [AWT-EventQueue-0] INFO  com.minimarket.AppIntegrationTest - Total price calculated label reads: S/0.00",
-            "2026-07-05 21:06:39 [AWT-EventQueue-0] INFO  com.minimarket.AppIntegrationTest - Registering sales transaction...",
-            "2026-07-05 21:06:39 [AWT-EventQueue-0] INFO  com.minimarket.AppIntegrationTest - Auto-confirming dialog: javax.swing.JDialog via button: OK",
-            "2026-07-05 21:06:39 [main] INFO  com.minimarket.AppIntegrationTest - Starting Inventario E2E view flow...",
-            "2026-07-05 21:06:39 [AWT-EventQueue-0] INFO  c.m.controller.InventarioController - Consultando inventario completo desde la base de datos.",
-            "2026-07-05 21:06:40 [AWT-EventQueue-0] INFO  com.minimarket.AppIntegrationTest - Clicking Limpiar Filtros button in InventarioView...",
-            "2026-07-05 21:06:40 [AWT-EventQueue-0] INFO  c.m.controller.InventarioController - Consultando inventario completo desde la base de datos.",
-            "2026-07-05 21:06:40 [AWT-EventQueue-0] INFO  c.m.controller.InventarioController - Buscando alertas de stock con límite menor o igual a: 9999",
-            "2026-07-05 21:06:40 [AWT-EventQueue-0] INFO  c.m.controller.InventarioController - Alertas encontradas: 1",
-            "2026-07-05 21:06:40 [AWT-EventQueue-0] INFO  com.minimarket.AppIntegrationTest - Auto-confirming dialog: javax.swing.JDialog via button: OK",
-            "2026-07-05 21:06:40 [AWT-EventQueue-0] INFO  com.minimarket.AppIntegrationTest - Clicking Exportar Excel button in InventarioView...",
-            "2026-07-05 21:06:40 [AWT-EventQueue-0] INFO  c.m.controller.InventarioController - Iniciando proceso de exportación a Excel.",
-            "2026-07-05 21:06:40 [AWT-EventQueue-0] INFO  com.minimarket.AppIntegrationTest - Auto-dismissing dialog: javax.swing.JDialog",
-            "2026-07-05 21:06:40 [AWT-EventQueue-0] INFO  c.m.controller.InventarioController - Exportación cancelada por el usuario.",
-            "2026-07-05 21:06:40 [AWT-EventQueue-0] INFO  c.m.controller.InventarioController - Iniciando proceso de exportación a Excel.",
-            "2026-07-05 21:06:40 [AWT-EventQueue-0] INFO  com.minimarket.AppIntegrationTest - Auto-dismissing dialog: javax.swing.JDialog",
-            "2026-07-05 21:06:40 [AWT-EventQueue-0] INFO  c.m.controller.InventarioController - Exportación cancelada por el usuario.",
-            "2026-07-05 21:06:40 [AWT-EventQueue-0] INFO  com.minimarket.AppIntegrationTest - Clicking Add Product button to load InventarioAddView...",
-            "2026-07-05 21:06:41 [AWT-EventQueue-0] INFO  com.minimarket.AppIntegrationTest - Clicking Guardar in InventarioAddView...",
-            "2026-07-05 21:06:41 [AWT-EventQueue-0] INFO  com.minimarket.AppIntegrationTest - Auto-confirming dialog: javax.swing.JDialog via button: OK",
-            "2026-07-05 21:06:41 [AWT-EventQueue-0] INFO  c.m.controller.InventarioController - Consultando inventario completo desde la base de datos.",
-            "2026-07-05 21:06:42 [AWT-EventQueue-0] INFO  com.minimarket.AppIntegrationTest - tblStock row count: 1",
-            "2026-07-05 21:06:42 [AWT-EventQueue-0] INFO  com.minimarket.AppIntegrationTest - lastStocks: [Stock{idStock=1, cantidad=100, idProducto=1}]",
-            "2026-07-05 21:06:42 [AWT-EventQueue-0] INFO  com.minimarket.AppIntegrationTest - lastProducts: [Producto{idProducto=1, nombreProducto='Galletas Soda', precioUnitario=1.20, idCategoria=1, codigoBarras='12345678'}]",
-            "2026-07-05 21:06:42 [AWT-EventQueue-0] INFO  com.minimarket.AppIntegrationTest - parentWindow: com.minimarket.view.DashboardView",
-            "2026-07-05 21:06:42 [AWT-EventQueue-0] INFO  com.minimarket.AppIntegrationTest - Simulating double click on tblStock row to open InventarioEditView...",
-            "2026-07-05 21:06:42 [AWT-EventQueue-0] INFO  com.minimarket.AppIntegrationTest - Clicking Guardar in InventarioEditView...",
-            "2026-07-05 21:06:42 [AWT-EventQueue-0] INFO  com.minimarket.AppIntegrationTest - Auto-confirming dialog: javax.swing.JDialog via button: OK",
-            "2026-07-05 21:06:42 [AWT-EventQueue-0] INFO  c.m.controller.InventarioController - Consultando inventario completo desde la base de datos.",
-            "2026-07-05 21:06:42 [AWT-EventQueue-0] INFO  c.m.controller.InventarioController - Consultando inventario completo desde la base de datos.",
-            "2026-07-05 21:06:43 [main] INFO  com.minimarket.AppIntegrationTest - Starting Categorias E2E view flow...",
-            "2026-07-05 21:06:43 [AWT-EventQueue-0] INFO  com.minimarket.AppIntegrationTest - Selecting first category in lstCategories...",
-            "2026-07-05 21:06:43 [AWT-EventQueue-0] INFO  com.minimarket.AppIntegrationTest - Clicking Crear Categoria button to load CategoriasAddView...",
-            "2026-07-05 21:06:43 [AWT-EventQueue-0] INFO  com.minimarket.AppIntegrationTest - Clicking Guardar in CategoriasAddView...",
-            "2026-07-05 21:06:43 [AWT-EventQueue-0] INFO  com.minimarket.AppIntegrationTest - Auto-confirming dialog: javax.swing.JDialog via button: OK",
-            "2026-07-05 21:06:44 [AWT-EventQueue-0] INFO  com.minimarket.AppIntegrationTest - Clicking Ajustar Reglas button to load CategoriasEditView...",
-            "2026-07-05 21:06:44 [AWT-EventQueue-0] INFO  com.minimarket.AppIntegrationTest - Clicking Guardar in CategoriasEditView...",
-            "2026-07-05 21:06:44 [AWT-EventQueue-0] INFO  com.minimarket.AppIntegrationTest - Auto-confirming dialog: javax.swing.JDialog via button: OK",
-            "2026-07-05 21:06:45 [AWT-EventQueue-0] INFO  com.minimarket.AppIntegrationTest - Re-opening CategoriasEditView to test deletion...",
-            "2026-07-05 21:06:45 [AWT-EventQueue-0] INFO  com.minimarket.AppIntegrationTest - Clicking Eliminar Categoría button...",
-            "2026-07-05 21:06:46 [AWT-EventQueue-0] INFO  com.minimarket.AppIntegrationTest - Auto-confirming dialog: javax.swing.JDialog via button: Yes",
-            "2026-07-05 21:06:46 [AWT-EventQueue-0] INFO  com.minimarket.AppIntegrationTest - Auto-confirming dialog: javax.swing.JDialog via button: OK",
-            "2026-07-05 21:06:46 [main] INFO  com.minimarket.AppIntegrationTest - Starting Reportes E2E view flow...",
-            "2026-07-05 21:06:46 [AWT-EventQueue-0] INFO  com.minimarket.AppIntegrationTest - Clicking Reports menu button on Dashboard...",
-            "2026-07-05 21:06:46 [AWT-EventQueue-0] INFO  c.m.controller.ReportesController - Precargando información analítica desde la base de datos.",
-            "2026-07-05 21:06:47 [AWT-EventQueue-0] INFO  com.minimarket.AppIntegrationTest - Tested date range buttons (Hoy, 7D, 30D, 1A) in ReportesView.",
-            "2026-07-05 21:06:47 [AWT-EventQueue-0] INFO  com.minimarket.AppIntegrationTest - Clicking Rango Personalizado button...",
-            "2026-07-05 21:06:47 [AWT-EventQueue-0] INFO  com.minimarket.AppIntegrationTest - Auto-confirming dialog: javax.swing.JDialog via button: OK",
-            "2026-07-05 21:06:47 [AWT-EventQueue-0] INFO  com.minimarket.AppIntegrationTest - Auto-confirming dialog: javax.swing.JDialog via button: OK",
-            "2026-07-05 21:06:47 [AWT-EventQueue-0] INFO  com.minimarket.AppIntegrationTest - Clicking Compartir button to copy summary report...",
-            "2026-07-05 21:06:48 [AWT-EventQueue-0] INFO  com.minimarket.AppIntegrationTest - Auto-confirming dialog: javax.swing.JDialog via button: OK",
-            "2026-07-05 21:06:48 [AWT-EventQueue-0] INFO  com.minimarket.AppIntegrationTest - Clicking Ver Lista Completa button...",
-            "2026-07-05 21:06:48 [AWT-EventQueue-0] INFO  com.minimarket.AppIntegrationTest - Auto-dismissing dialog: javax.swing.JDialog",
-            "2026-07-05 21:06:48 [AWT-EventQueue-0] INFO  com.minimarket.AppIntegrationTest - Clicking Exportar Reporte button...",
-            "2026-07-05 21:06:48 [AWT-EventQueue-0] INFO  c.m.controller.ReportesController - Iniciando exportación de reporte detallado a Excel.",
-            "2026-07-05 21:06:48 [AWT-EventQueue-0] INFO  com.minimarket.AppIntegrationTest - Auto-dismissing dialog: javax.swing.JDialog",
-            "2026-07-05 21:06:48 [AWT-EventQueue-0] INFO  c.m.controller.ReportesController - Exportación de reportes cancelada por el usuario.",
-            "2026-07-05 21:06:48 [main] INFO  com.minimarket.AppIntegrationTest - Executing Logout E2E flow...",
-            "2026-07-05 21:06:48 [AWT-EventQueue-0] INFO  com.minimarket.AppIntegrationTest - Clicking Logout button on Dashboard...",
-            "2026-07-05 21:06:49 [main] INFO  com.minimarket.AppIntegrationTest - Full E2E Integration Flow test completed successfully.",
-            "2026-07-05 21:06:49 [main] INFO  com.minimarket.AppIntegrationTest - Stopping dialog dismiss thread...",
-            "2026-07-05 21:06:49 [main] INFO  com.minimarket.AppIntegrationTest - Cleaning up GUI windows...",
-            "2026-07-05 21:06:49 [AWT-EventQueue-0] INFO  com.minimarket.AppIntegrationTest - Disposed window: com.minimarket.view.LoginView",
-            "2026-07-05 21:06:49 [AWT-EventQueue-0] INFO  com.minimarket.AppIntegrationTest - Disposed window: com.minimarket.view.DashboardView",
-            "2026-07-05 21:06:49 [AWT-EventQueue-0] INFO  com.minimarket.AppIntegrationTest - Disposed window: javax.swing.JDialog",
-            "2026-07-05 21:06:49 [AWT-EventQueue-0] INFO  com.minimarket.AppIntegrationTest - Disposed window: javax.swing.JDialog",
-            "2026-07-05 21:06:49 [AWT-EventQueue-0] INFO  com.minimarket.AppIntegrationTest - Disposed window: javax.swing.JDialog",
-            "2026-07-05 21:06:49 [main] INFO  com.minimarket.AppIntegrationTest - ========================================= END OF TEST =========================================",
-            "2026-07-05 21:06:49 [main] INFO  com.minimarket.AppIntegrationTest - ========================================= STARTING TEST SETUP =========================================",
-            "2026-07-05 21:06:49 [main] INFO  com.minimarket.AppIntegrationTest - Successfully injected mock database connection singleton.",
-            "2026-07-05 21:06:49 [main] INFO  com.minimarket.AppIntegrationTest - Testing App offline boot flow when database is not reachable...",
-            "2026-07-05 21:06:49 [AWT-EventQueue-0] ERROR com.minimarket.App - CRITICAL: Failed to connect to MySQL database on startup: Could not connect to MySQL server",
-            "2026-07-05 21:06:49 [AWT-EventQueue-0] WARN  com.minimarket.App - Booting LoginView in offline demo mode.",
-            "2026-07-05 21:06:49 [main] INFO  com.minimarket.AppIntegrationTest - Found visible LoginView in offline mode!",
-            "2026-07-05 21:06:49 [main] INFO  com.minimarket.AppIntegrationTest - Offline boot flow test completed successfully.",
-            "2026-07-05 21:06:49 [main] INFO  com.minimarket.AppIntegrationTest - Stopping dialog dismiss thread...",
-            "2026-07-05 21:06:49 [main] INFO  com.minimarket.AppIntegrationTest - Cleaning up GUI windows...",
-            "2026-07-05 21:06:49 [AWT-EventQueue-0] INFO  com.minimarket.AppIntegrationTest - Disposed window: com.minimarket.view.LoginView",
-            "2026-07-05 21:06:49 [AWT-EventQueue-0] INFO  com.minimarket.AppIntegrationTest - Disposed window: com.minimarket.view.DashboardView",
-            "2026-07-05 21:06:49 [AWT-EventQueue-0] INFO  com.minimarket.AppIntegrationTest - Disposed window: javax.swing.JDialog",
-            "2026-07-05 21:06:49 [AWT-EventQueue-0] INFO  com.minimarket.AppIntegrationTest - Disposed window: javax.swing.JDialog",
-            "2026-07-05 21:06:49 [AWT-EventQueue-0] INFO  com.minimarket.AppIntegrationTest - Disposed window: javax.swing.JDialog",
-            "2026-07-05 21:06:49 [AWT-EventQueue-0] INFO  com.minimarket.AppIntegrationTest - Disposed window: com.minimarket.view.LoginView",
-            "2026-07-05 21:06:49 [main] INFO  com.minimarket.AppIntegrationTest - ========================================= END OF TEST ========================================="
+// LOGS_PLACEHOLDER
         ];
 
         // Parser Logic
@@ -850,7 +1171,7 @@
         let currentLog = null;
 
         rawLogs.forEach((line) => {
-            const match = line.match(/^(\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2})\s+\[([^\]]+)\]\s+(INFO|WARN|ERROR|DEBUG|TRACE)\s+(.*?)\s+-\s+(.*)$/i);
+            const match = line.match(/^(\\d{4}-\\d{2}-\\d{2} \\d{2}:\\d{2}:\\d{2})\\s+\\[([^\\]]+)\\]\\s+(INFO|WARN|ERROR|DEBUG|TRACE)\\s+(.*?)\\s+-\\s+(.*)$/i);
             if (match) {
                 if (currentLog) {
                     parsedLogs.push(currentLog);
@@ -886,12 +1207,12 @@
         function isMilestone(log) {
             if (log.level === 'ERROR' || log.level === 'WARN') return false;
             const msg = log.message;
-            return log.logger.includes("AppIntegrationTest") ||
-                   msg.includes("===") ||
-                   msg.includes("passed") ||
-                   msg.includes("completed") ||
-                   msg.includes("Starting") ||
-                   msg.includes("Auto-confirming") ||
+            return log.logger.includes("AppIntegrationTest") || 
+                   msg.includes("===") || 
+                   msg.includes("passed") || 
+                   msg.includes("completed") || 
+                   msg.includes("Starting") || 
+                   msg.includes("Auto-confirming") || 
                    msg.includes("Auto-dismissing");
         }
 
@@ -904,7 +1225,7 @@
         parsedLogs.forEach(log => {
             if (log.level === 'WARN') countWarn++;
             else if (log.level === 'ERROR') countError++;
-
+            
             if (isMilestone(log)) countMilestones++;
         });
 
@@ -945,7 +1266,7 @@
                 const levelClass = log.level.toLowerCase(); // error or warn
                 const icon = log.level === 'ERROR' ? '🚨' : '⚠️';
                 const hasDetails = log.details.length > 0;
-
+                
                 html += `
                     <div class="error-item ${levelClass}">
                         <div class="error-item-header">
@@ -958,7 +1279,7 @@
                                 <span>▶</span> Ver Stacktrace/Detalles (${log.details.length} líneas)
                             </button>
                             <div class="details-container" id="spot-details-${index}">
-                                <pre class="stack-trace">${escapeHtml(log.details.join('\n'))}</pre>
+                                <pre class="stack-trace">${escapeHtml(log.details.join('\\n'))}</pre>
                             </div>
                         ` : ''}
                     </div>
@@ -972,7 +1293,7 @@
             const container = document.getElementById(id);
             const button = container.previousElementSibling;
             const arrow = button.querySelector('span');
-
+            
             if (container.classList.contains('show')) {
                 container.classList.remove('show');
                 arrow.innerText = '▶';
@@ -999,11 +1320,11 @@
         function filterTab(tab) {
             // Remove active classes
             document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
-
+            
             // Set active
             document.getElementById('tab-' + tab).classList.add('active');
             currentFilter = tab;
-
+            
             applyFilterAndSearch();
         }
 
@@ -1067,7 +1388,7 @@
                                 <span>▶</span> Mostrar detalles
                             </button>
                             <div class="details-container" id="term-details-${index}">
-                                <pre class="stack-trace">${escapeHtml(log.details.join('\n'))}</pre>
+                                <pre class="stack-trace">${escapeHtml(log.details.join('\\n'))}</pre>
                             </div>
                         ` : ''}
                     </div>
@@ -1081,3 +1402,43 @@
     </script>
 </body>
 </html>
+""";
+
+            String htmlContent = htmlTemplate.replace("// LOGS_PLACEHOLDER", logsJson.toString());
+            File targetSiteDir = new File("target/site");
+            if (!targetSiteDir.exists()) {
+                targetSiteDir.mkdirs();
+            }
+            File reportFile = new File(targetSiteDir, "reporte_pruebas.html");
+            java.nio.file.Files.writeString(reportFile.toPath(), htmlContent);
+            logger.info("Test report generated at: " + reportFile.getAbsolutePath());
+        } catch (Exception e) {
+            logger.error("Error al generar el reporte HTML: ", e);
+        }
+    }
+
+    private static String escapeJsonString(String val) {
+        if (val == null) return "null";
+        StringBuilder sb = new StringBuilder();
+        for (int i = 0; i < val.length(); i++) {
+            char ch = val.charAt(i);
+            switch (ch) {
+                case '"': sb.append("\\\""); break;
+                case '\\': sb.append("\\\\"); break;
+                case '\b': sb.append("\\b"); break;
+                case '\f': sb.append("\\f"); break;
+                case '\n': sb.append("\\n"); break;
+                case '\r': sb.append("\\r"); break;
+                case '\t': sb.append("\\t"); break;
+                default:
+                    if (ch < ' ') {
+                        String hex = Integer.toHexString(ch);
+                        sb.append("\\u").append("0000", 0, 4 - hex.length()).append(hex);
+                    } else {
+                        sb.append(ch);
+                    }
+            }
+        }
+        return sb.toString();
+    }
+}

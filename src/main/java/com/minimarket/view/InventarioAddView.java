@@ -1192,4 +1192,9 @@ public class InventarioAddView extends JPanel {
             g2.dispose();
         }
     }
+
+    @Override
+    protected final void finalize() {
+        // Prevent finalizer attacks (SpotBugs CT_CONSTRUCTOR_THROW)
+    }
 }
