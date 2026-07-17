@@ -20,29 +20,37 @@ El proyecto está construido bajo estándares profesionales y utiliza las siguie
     *   `Apache POI` para la generación y exportación de reportes a hojas de cálculo de Excel (`.xlsx`).
     *   `Google Guava` para utilidades avanzadas.
     *   `Logback` para un sistema de logging estructurado.
+*   **Empaquetador de Instalador:** Inno Setup 6
 
 ---
 
 ## 🎨 Características Principales
 
-1.  🔐 **Autenticación y Roles de Usuario:**
+1.  🔧 **Instalación y Configuración de BD Dinámica:**
+    *   **Sin Base de Datos Fija:** La aplicación no depende de un archivo estático de configuración ni requiere que configures manualmente las tablas en MySQL Workbench antes de iniciar.
+    *   **Asistente de Conexión:** Si es el primer arranque o la conexión con la base de datos falla, se iniciará de forma automática un **Asistente de Configuración de Base de Datos** premium donde podrás ingresar la IP, el Puerto, el Nombre de la BD, el Usuario y la Contraseña.
+    *   **Auto-Creación de Esquema**: Tras conectarse con éxito, el sistema crea la base de datos si no existe e inicializa todo el esquema de tablas y categorías iniciales automáticamente.
+2.  🔐 **Autenticación y Roles de Usuario:**
     *   Control de acceso seguro mediante inicio de sesión.
     *   Soporte para roles: **Administrador** (acceso completo) y **Vendedor** (acceso limitado a ventas).
     *   Cifrado de contraseñas mediante algoritmo seguro **SHA-256**.
-    *   Modo offline automático en caso de pérdida de conexión con la base de datos (inicia en modo demostración/lectura).
-2.  📊 **Panel de Control (Dashboard):**
+    *   **Registro del Administrador Inicial (First-Run)**: Si la base de datos está vacía, el sistema arranca con un formulario estético de dos columnas para crear la cuenta de administrador principal.
+3.  📊 **Panel de Control (Dashboard):**
     *   Visualización consolidada del estado del negocio.
     *   Métricas rápidas e indicador de stock bajo.
-3.  📦 **Gestión de Inventario (Stock):**
+4.  👥 **Gestión de Usuarios Integrada:**
+    *   Sección integrada de forma nativa en el panel del Dashboard (sin ventanas emergentes molestas).
+    *   Permite registrar nuevos usuarios y ver la lista completa en tiempo real en una tabla interactiva ubicada en la parte inferior del panel.
+5.  📦 **Gestión de Inventario (Stock):**
     *   Control de existencias de productos en tiempo real.
     *   Alertas de desabastecimiento e integración con códigos de barras (EAN-13).
-4.  🛍️ **Módulo de Ventas:**
+6.  🛍️ **Módulo de Ventas:**
     *   Registro rápido de ventas seleccionando cliente y productos.
     *   Cálculo automático de precios e importes totales.
     *   Validación de stock disponible antes de procesar la venta.
-5.  🏷️ **Gestión de Categorías:**
-    *   Clasificación lógica de productos (Abarrotes, Bebidas, Lácteos, Cuidado Personal, etc.) para facilitar la búsqueda.
-6.  📈 **Reportes y Exportación:**
+7.  🏷️ **Gestión de Categorías:**
+    *   Clasificación lógica de productos con categorías iniciales precargadas (*Abarrotes, Bebidas, Lácteos, Limpieza, Cuidado Personal, Snacks y Golosinas, Panadería*).
+8.  📈 **Reportes y Exportación:**
     *   Generación de estadísticas detalladas de ventas e inventario.
     *   Exportación directa a Microsoft Excel utilizando la potencia de `Apache POI`.
 
@@ -67,28 +75,22 @@ graph TD
 *   [`com.minimarket`](file:///src/main/java/com/minimarket/): Contiene la clase de arranque de la aplicación ([`App.java`](file:///src/main/java/com/minimarket/App.java)).
 *   [`com.minimarket.config`](file:///src/main/java/com/minimarket/config/): Gestiona la configuración de conexión JDBC a través de un patrón Singleton ([`DatabaseConnection.java`](file:///src/main/java/com/minimarket/config/DatabaseConnection.java)).
 *   [`com.minimarket.model`](file:///src/main/java/com/minimarket/model/): Define las entidades principales del dominio (`Producto`, `Categoria`, `Stock`, `Cliente`, `Venta`, `Usuario`, `Rol`).
-*   [`com.minimarket.view`](file:///src/main/java/com/minimarket/view/): Interfaces gráficas construidas en Swing (ventanas principales, formularios de inserción y edición).
+*   [`com.minimarket.view`](file:///src/main/java/com/minimarket/view/): Interfaces gráficas construidas en Swing (ventanas principales, formularios de inserción y edición). Contiene componentes premium con bordes redondeados y soporte para placeholders.
 *   [`com.minimarket.controller`](file:///src/main/java/com/minimarket/controller/): Contiene los controladores que coordinan las vistas e interactúan con la capa de datos.
 *   [`com.minimarket.dao`](file:///src/main/java/com/minimarket/dao/) / [`impl`](file:///src/main/java/com/minimarket/dao/impl/): Abstracción y consultas SQL directas a la base de datos (CRUDs).
-*   [`com.minimarket.util`](file:///src/main/java/com/minimarket/util/): Clases de utilidad como encriptación, validaciones, etc.
+*   [`com.minimarket.util`](file:///src/main/java/com/minimarket/util/): Clases de utilidad como el gestor de iconos del sistema ([`IconUtil.java`](file:///src/main/java/com/minimarket/util/IconUtil.java)) y utilidades criptográficas.
 
 ---
 
 ## 🗄️ Estructura de la Base de Datos
 
-La base de datos se denomina `minimarket_yuly` y cuenta con un diseño relacional optimizado para la consistencia referencial:
-
-### Diagrama Entidad-Relación (DER)
-
-El diseño físico de la base de datos se representa en el siguiente diagrama:
-
-![Diagrama de Entidad Relación](./images/der.png)
+La base de datos se denomina `minimarket_yuly` y cuenta con un diseño relacional optimizado para la consistencia referencial.
 
 ### Inicialización de Datos
 
-El repositorio incluye dos scripts SQL listos para su uso en la raíz del proyecto:
-1.  [`db_schema.sql`](file:///db_schema.sql): Crea la base de datos y define la estructura de todas las tablas con sus relaciones y claves foráneas.
-2.  [`populate_data.sql`](file:///populate_data.sql): Inicializa la base de datos con datos reales de productos de consumo masivo en el mercado peruano (arroz, aceites, lácteos, bebidas con códigos EAN-13 reales), stock por defecto, roles y usuarios de prueba.
+El repositorio incluye los siguientes archivos en la raíz del proyecto para referencias o copias de seguridad:
+1.  [`db_schema.sql`](file:///db_schema.sql): Crea la base de datos y define la estructura de todas las tablas e incluye la inserción automática de los roles y categorías iniciales por defecto.
+2.  [`minimarket_yuly_backup.sql`](file:///minimarket_yuly_backup.sql): Respaldo completo de la base de datos con registros reales y datos de prueba.
 
 ---
 
@@ -99,7 +101,7 @@ El repositorio incluye dos scripts SQL listos para su uso en la raíz del proyec
 *   **Maven 3.8+** instalado.
 *   **MySQL Server 8.0+** en ejecución.
 
-### Pasos para Configurar la Aplicación
+### Pasos para Configurar y Ejecutar la Aplicación
 
 1.  **Clonar el repositorio:**
     ```bash
@@ -107,26 +109,16 @@ El repositorio incluye dos scripts SQL listos para su uso en la raíz del proyec
     cd minimarket
     ```
 
-2.  **Configurar la Base de Datos:**
-    *   Abre tu cliente de MySQL (MySQL Workbench, phpMyAdmin, DBeaver o terminal).
-    *   Ejecuta el contenido del script [`db_schema.sql`](file:///db_schema.sql). Esto creará la base de datos `minimarket_yuly`, las tablas y los usuarios de prueba por defecto.
-
-3.  **Ajustar credenciales de conexión:**
-    *   Navega a [`src/main/resources/database.properties`](file:///src/main/resources/database.properties) y edita los valores correspondientes a tu servidor MySQL local:
-    ```properties
-    db.url=jdbc:mysql://localhost:3306/minimarket_yuly?useSSL=true&serverTimezone=UTC&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true
-    db.username=tu_usuario
-    db.password=tu_contraseña
-    db.driver=com.mysql.cj.jdbc.Driver
-    # Habilitar inicio automático (opcional, salta el login para pruebas rápidas)
-    db.autologin=false
-    ```
+2.  **Arrancar la aplicación:**
+    *   No necesitas configurar archivos. Simplemente ejecuta el comando de arranque o el instalador generado.
+    *   En el primer arranque, la aplicación abrirá la interfaz gráfica de configuración de base de datos.
+    *   Introduce los datos de tu servidor MySQL local y haz clic en **Probar y Conectar**.
+    *   El sistema guardará de forma local el archivo `database.properties` en el directorio raíz de la aplicación (este archivo está configurado en `.gitignore` para que tus contraseñas locales nunca se suban a GitHub).
+    *   A continuación, si es la primera vez que se monta la base de datos, aparecerá la pantalla de **Registro del Administrador Inicial**.
 
 ---
 
 ## 🔨 Instrucciones de Ejecución y Compilación
-
-El proyecto está completamente preparado para compilarse, ejecutarse o empaquetarse en un ejecutable de Windows (`.exe`) nativo a través de Maven:
 
 ### Compilar el proyecto
 ```bash
@@ -139,20 +131,24 @@ mvn exec:java
 ```
 
 ### Generar el archivo ejecutable (`.exe`) para Windows
-El proyecto cuenta con la integración automática de `launch4j-maven-plugin`. Para generar un archivo `.exe` autocontenido con todas sus dependencias incluidas (Fat JAR), ejecuta:
+El proyecto cuenta con la integración automática de `launch4j-maven-plugin`. Para generar un archivo `.exe` autocontenido con todas sus dependencias incluidas (Fat JAR) y el icono del logotipo oficial incrustado, ejecuta:
 ```bash
 mvn clean package -DskipTests
 ```
 Una vez terminado el proceso, encontrarás el ejecutable listo para usar en:
 *   📂 `target/MiniMarket.exe`
 
-*(Nota: Requiere que Windows tenga una versión de Java runtime compatible con JDK 21+ configurada, o que se proporcione en el path).*
+### Compilar el Instalador de Windows (.exe)
+El proyecto contiene el script de Inno Setup 6 `minimarket.iss`. Si tienes instalado Inno Setup Compiler (`ISCC.exe`), puedes compilar el instalador desde la terminal con:
+```bash
+ISCC minimarket.iss
+```
+Esto creará el instalador autoejecutable en:
+*   📂 `target/MiniMarket_Setup.exe`
 
 ---
 
 ## 🧪 Pruebas y Control de Calidad
-
-El proyecto implementa un estricto control de calidad mediante pruebas automatizadas y análisis estático.
 
 ### Ejecutar Pruebas Unitarias e de Integración
 Las pruebas utilizan **JUnit 5** y **Mockito** para simular la interacción con la base de datos y la GUI de forma aislada.
@@ -165,22 +161,7 @@ Cada vez que se ejecutan los tests, **JaCoCo** genera un informe de cobertura. P
 `target/site/jacoco/index.html`
 
 ### Análisis Estático (SpotBugs)
-Para buscar vulnerabilidades, malas prácticas o bugs potenciales en el código, ejecuta:
+Para buscar vulnerabilidades o malas prácticas, ejecuta:
 ```bash
 mvn spotbugs:check
 ```
-Si deseas ver la interfaz gráfica interactiva de SpotBugs para navegar detalladamente entre los hallazgos:
-```bash
-mvn spotbugs:gui
-```
-
----
-
-## 👥 Credenciales de Prueba por Defecto
-
-Una vez que ejecutes la aplicación, podrás iniciar sesión con los siguientes usuarios cargados por defecto:
-
-| Rol | Usuario | Contraseña |
-| :--- | :--- | :--- |
-| **Administrador** | `admin` | `admin` |
-| **Vendedor** | `vendedor` | `vendedor` |
