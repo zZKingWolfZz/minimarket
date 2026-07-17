@@ -9,6 +9,8 @@ import java.awt.event.ActionEvent;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 
+import com.minimarket.util.IconUtil;
+
 public class LoginView extends JFrame {
 
     private JTextField txtUsername;
@@ -18,6 +20,7 @@ public class LoginView extends JFrame {
 
     public LoginView() {
         initComponents();
+        IconUtil.setWindowIcon(this);
     }
 
     private void initComponents() {

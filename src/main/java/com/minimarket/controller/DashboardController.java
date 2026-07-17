@@ -170,7 +170,8 @@ public class DashboardController {
             try {
                 Connection conn = com.minimarket.config.DatabaseConnection.getInstance().getConnection();
                 UsuariosAddView usersView = new UsuariosAddView(conn);
-                usersView.setVisible(true);
+                view.setViewPanel(usersView);
+                view.setHeaderTitle("Gestión de Usuarios");
             } catch (SQLException ex) {
                 ex.printStackTrace();
             }

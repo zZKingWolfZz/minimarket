@@ -93,3 +93,13 @@ CREATE TABLE venta (
 INSERT INTO rol (Id_rol, nombre_rol) VALUES 
 (1, 'Administrador'),
 (2, 'Vendedor');
+
+-- Insertar categorías iniciales
+INSERT INTO categoria (nombre_categoria) VALUES 
+('Abarrotes'),
+('Bebidas'),
+('Lácteos'),
+('Limpieza'),
+('Cuidado Personal'),
+('Snacks y Golosinas'),
+('Panadería');

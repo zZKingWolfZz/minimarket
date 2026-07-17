@@ -6,7 +6,7 @@ import java.nio.file.Files;
 
 public class ConvertPngToIco {
     public static void main(String[] args) throws Exception {
-        File pngFile = new File("C:/Users/arnie/.gemini/antigravity-ide/scratch/minimarket-arquitectura-unificado/images/OIP.png");
+        File pngFile = new File("C:/Users/arnie/.gemini/antigravity-ide/scratch/minimarket-arquitectura-unificado/images/logo.png");
         File icoFile = new File("C:/Users/arnie/.gemini/antigravity-ide/scratch/minimarket-arquitectura-unificado/images/minimarket.ico");
 
         if (!pngFile.exists()) {

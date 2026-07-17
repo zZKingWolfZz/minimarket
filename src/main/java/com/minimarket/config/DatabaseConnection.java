@@ -1,5 +1,9 @@
 package com.minimarket.config;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.io.OutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.sql.Connection;
@@ -17,21 +21,7 @@ public class DatabaseConnection {
     private Properties properties = new Properties();
 
     private DatabaseConnection() {
-        try (InputStream input = getClass().getClassLoader().getResourceAsStream("database.properties")) {
-            if (input == null) {
-                throw new RuntimeException("Sorry, unable to find database.properties");
-            }
-
-            properties.load(input);
-
-            Class.forName(properties.getProperty("db.driver"));
-        } catch (IOException ex) {
-            System.err.println("Error loading properties file: " + ex.getMessage());
-            ex.printStackTrace();
-        } catch (ClassNotFoundException ex) {
-            System.err.println("MySQL Driver not found: " + ex.getMessage());
-            ex.printStackTrace();
-        }
+        loadProperties();
 
         // Initialize the Dynamic Proxy Connection to intercept SQL calls and auto-reconnect if dropped by cloud server
         this.proxyConnection = (Connection) java.lang.reflect.Proxy.newProxyInstance(
@@ -49,6 +39,76 @@ public class DatabaseConnection {
                 }
             }
         );
+    }
+
+    private void loadProperties() {
+        properties = new Properties();
+        
+        // 1. Try to load from external file in working directory
+        File externalFile = new File("database.properties");
+        if (externalFile.exists()) {
+            try (InputStream input = new FileInputStream(externalFile)) {
+                properties.load(input);
+                System.out.println("Loaded database configuration from external file: " + externalFile.getAbsolutePath());
+                Class.forName(properties.getProperty("db.driver"));
+                return;
+            } catch (Exception ex) {
+                System.err.println("Failed to load external properties, falling back to classpath: " + ex.getMessage());
+            }
+        }
+        
+        // 2. Fall back to classpath resource
+        try (InputStream input = getClass().getClassLoader().getResourceAsStream("database.properties")) {
+            if (input != null) {
+                properties.load(input);
+                System.out.println("Loaded database configuration from classpath resource.");
+                Class.forName(properties.getProperty("db.driver"));
+            } else {
+                // Default fallback
+                properties.setProperty("db.driver", "com.mysql.cj.jdbc.Driver");
+                properties.setProperty("db.url", "jdbc:mysql://localhost:3306/minimarket_yuly?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true");
+                properties.setProperty("db.username", "root");
+                properties.setProperty("db.password", "1234");
+            }
+        } catch (Exception ex) {
+            System.err.println("Error loading properties: " + ex.getMessage());
+            ex.printStackTrace();
+        }
+    }
+
+    public void setConnectionSettings(String host, String port, String database, String username, String password) throws SQLException {
+        synchronized (connectionLock) {
+            String url = "jdbc:mysql://" + host + ":" + port + "/" + database + "?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true";
+            
+            // Test connection first
+            Connection testConn = DriverManager.getConnection(url, username, password);
+            testConn.close();
+            
+            // Save to active properties
+            properties.setProperty("db.url", url);
+            properties.setProperty("db.username", username);
+            properties.setProperty("db.password", password);
+            properties.setProperty("db.driver", "com.mysql.cj.jdbc.Driver");
+            
+            // Reset active connection so it reconnects with new credentials
+            if (rawConnection != null) {
+                try {
+                    rawConnection.close();
+                } catch (SQLException e) {
+                    // Ignore
+                }
+                rawConnection = null;
+            }
+            
+            // Write to external file database.properties
+            File externalFile = new File("database.properties");
+            try (OutputStream output = new FileOutputStream(externalFile)) {
+                properties.store(output, "External Database Configuration");
+                System.out.println("Saved database configuration to external file: " + externalFile.getAbsolutePath());
+            } catch (IOException e) {
+                System.err.println("Error saving external database.properties: " + e.getMessage());
+            }
+        }
     }
 
     public static DatabaseConnection getInstance() {

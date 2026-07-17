@@ -12,27 +12,30 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Statement;
 
+import com.minimarket.util.IconUtil;
+
 public class SetupAdminView extends JFrame {
 
     private final Connection connection;
 
-    private JTextField txtUsername;
-    private JPasswordField txtPassword;
-    private JPasswordField txtConfirmPassword;
-    private JTextField txtNombre;
-    private JTextField txtApellidoPaterno;
-    private JTextField txtApellidoMaterno;
-    private JButton btnRegister;
+    private RoundedTextField txtUsername;
+    private RoundedPasswordField txtPassword;
+    private RoundedPasswordField txtConfirmPassword;
+    private RoundedTextField txtNombre;
+    private RoundedTextField txtApellidoPaterno;
+    private RoundedTextField txtApellidoMaterno;
+    private RoundedButton btnRegister;
 
     public SetupAdminView(Connection connection) {
         this.connection = connection;
         initComponents();
+        IconUtil.setWindowIcon(this);
     }
 
     private void initComponents() {
         setTitle("Minimarket - Configuración del Administrador Inicial");
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setSize(520, 680);
+        setSize(650, 520);
         setLocationRelativeTo(null);
         setResizable(false);
 
@@ -44,63 +47,76 @@ public class SetupAdminView extends JFrame {
 
         // Card Panel
         JPanel cardPanel = new JPanel();
-        cardPanel.setLayout(new BoxLayout(cardPanel, BoxLayout.Y_AXIS));
+        cardPanel.setLayout(new BorderLayout());
         cardPanel.setBackground(Color.WHITE);
-        cardPanel.setBorder(new EmptyBorder(30, 35, 30, 35));
-        cardPanel.setPreferredSize(new Dimension(420, 580));
-        cardPanel.setMaximumSize(new Dimension(420, 580));
+        cardPanel.setBorder(new EmptyBorder(25, 30, 25, 30));
+        cardPanel.setPreferredSize(new Dimension(580, 430));
+        cardPanel.setMaximumSize(new Dimension(580, 430));
 
-        // Header Title
+        // Header Panel (Logo & Title)
+        JPanel headerPanel = new JPanel(new BorderLayout(0, 2));
+        headerPanel.setOpaque(false);
+
+        java.net.URL imgURL = SetupAdminView.class.getResource("/logo.png");
+        JPanel titleLogoPanel = new JPanel(new FlowLayout(FlowLayout.CENTER, 10, 0));
+        titleLogoPanel.setOpaque(false);
+        if (imgURL != null) {
+            ImageIcon logoIcon = new ImageIcon(new ImageIcon(imgURL).getImage().getScaledInstance(50, 50, Image.SCALE_SMOOTH));
+            JLabel lblLogo = new JLabel(logoIcon);
+            titleLogoPanel.add(lblLogo);
+        }
+
         JLabel lblLogoText = new JLabel("MINI-POS");
         lblLogoText.setFont(new Font("Segoe UI", Font.BOLD, 22));
         lblLogoText.setForeground(new Color(24, 119, 242));
-        lblLogoText.setAlignmentX(Component.CENTER_ALIGNMENT);
+        titleLogoPanel.add(lblLogoText);
+        headerPanel.add(titleLogoPanel, BorderLayout.NORTH);
 
-        JLabel lblTitle = new JLabel("Registro del Administrador", JLabel.CENTER);
+        JLabel lblTitle = new JLabel("Registro del Administrador Inicial", JLabel.CENTER);
         lblTitle.setFont(new Font("Segoe UI", Font.BOLD, 18));
         lblTitle.setForeground(new Color(15, 23, 42));
-        lblTitle.setAlignmentX(Component.CENTER_ALIGNMENT);
+        headerPanel.add(lblTitle, BorderLayout.CENTER);
 
         JLabel lblSub = new JLabel("Cree la cuenta inicial para administrar el negocio", JLabel.CENTER);
-        lblSub.setFont(new Font("Segoe UI", Font.PLAIN, 12));
+        lblSub.setFont(new Font("Segoe UI", Font.PLAIN, 11));
         lblSub.setForeground(new Color(100, 116, 139));
-        lblSub.setAlignmentX(Component.CENTER_ALIGNMENT);
+        headerPanel.add(lblSub, BorderLayout.SOUTH);
 
-        cardPanel.add(lblLogoText);
-        cardPanel.add(Box.createVerticalStrut(5));
-        cardPanel.add(lblTitle);
-        cardPanel.add(Box.createVerticalStrut(5));
-        cardPanel.add(lblSub);
-        cardPanel.add(Box.createVerticalStrut(25));
+        cardPanel.add(headerPanel, BorderLayout.NORTH);
 
-        // Form Fields Helper Method
-        cardPanel.add(createFieldPanel("Usuario (Username) *", txtUsername = new JTextField()));
-        cardPanel.add(Box.createVerticalStrut(10));
-        cardPanel.add(createFieldPanel("Contraseña *", txtPassword = new JPasswordField()));
-        cardPanel.add(Box.createVerticalStrut(10));
-        cardPanel.add(createFieldPanel("Confirmar Contraseña *", txtConfirmPassword = new JPasswordField()));
-        cardPanel.add(Box.createVerticalStrut(10));
-        cardPanel.add(createFieldPanel("Nombres *", txtNombre = new JTextField()));
-        cardPanel.add(Box.createVerticalStrut(10));
-        cardPanel.add(createFieldPanel("Apellido Paterno *", txtApellidoPaterno = new JTextField()));
-        cardPanel.add(Box.createVerticalStrut(10));
-        cardPanel.add(createFieldPanel("Apellido Materno", txtApellidoMaterno = new JTextField()));
-        cardPanel.add(Box.createVerticalStrut(25));
+        // Two-Column Grid Panel
+        JPanel gridPanel = new JPanel(new GridLayout(3, 2, 20, 12));
+        gridPanel.setOpaque(false);
+        gridPanel.setBorder(new EmptyBorder(15, 0, 15, 0));
+
+        // Column 1: Personal Info
+        txtNombre = new RoundedTextField("Ingrese nombres", null);
+        gridPanel.add(createFieldPanel("Nombres *", txtNombre));
+
+        // Column 2: Account Info
+        txtUsername = new RoundedTextField("Ingrese nombre de usuario", null);
+        gridPanel.add(createFieldPanel("Usuario (Username) *", txtUsername));
+
+        txtApellidoPaterno = new RoundedTextField("Ingrese apellido paterno", null);
+        gridPanel.add(createFieldPanel("Apellido Paterno *", txtApellidoPaterno));
+
+        txtPassword = new RoundedPasswordField("Ingrese contraseña", null);
+        gridPanel.add(createFieldPanel("Contraseña *", txtPassword));
+
+        txtApellidoMaterno = new RoundedTextField("Ingrese apellido materno", null);
+        gridPanel.add(createFieldPanel("Apellido Materno", txtApellidoMaterno));
+
+        txtConfirmPassword = new RoundedPasswordField("Confirme contraseña", null);
+        gridPanel.add(createFieldPanel("Confirmar Contraseña *", txtConfirmPassword));
+
+        cardPanel.add(gridPanel, BorderLayout.CENTER);
 
         // Register Button
-        btnRegister = new JButton("Registrar Administrador y Continuar");
-        btnRegister.setFont(new Font("Segoe UI", Font.BOLD, 14));
-        btnRegister.setForeground(Color.WHITE);
-        btnRegister.setBackground(new Color(24, 119, 242));
-        btnRegister.setFocusPainted(false);
-        btnRegister.setPreferredSize(new Dimension(350, 42));
-        btnRegister.setMaximumSize(new Dimension(350, 42));
-        btnRegister.setAlignmentX(Component.CENTER_ALIGNMENT);
-        btnRegister.setCursor(Cursor.getPredefinedCursor(Cursor.HAND_CURSOR));
-
+        btnRegister = new RoundedButton("Registrar Administrador y Continuar");
+        btnRegister.setPreferredSize(new Dimension(0, 40));
         btnRegister.addActionListener(e -> handleRegister());
 
-        cardPanel.add(btnRegister);
+        cardPanel.add(btnRegister, BorderLayout.SOUTH);
 
         centerContainer.add(cardPanel);
         mainPanel.add(centerContainer, BorderLayout.CENTER);
@@ -108,26 +124,17 @@ public class SetupAdminView extends JFrame {
     }
 
     private JPanel createFieldPanel(String labelText, JTextField textField) {
-        JPanel panel = new JPanel();
-        panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
+        JPanel panel = new JPanel(new BorderLayout(0, 4));
         panel.setOpaque(false);
-        panel.setMaximumSize(new Dimension(350, 48));
-        panel.setPreferredSize(new Dimension(350, 48));
-        panel.setAlignmentX(Component.CENTER_ALIGNMENT);
 
         JLabel label = new JLabel(labelText);
-        label.setFont(new Font("Segoe UI", Font.BOLD, 11));
+        label.setFont(new Font("Segoe UI", Font.BOLD, 10));
         label.setForeground(new Color(71, 85, 105));
-        label.setAlignmentX(Component.LEFT_ALIGNMENT);
 
-        textField.setFont(new Font("Segoe UI", Font.PLAIN, 12));
-        textField.setMaximumSize(new Dimension(350, 28));
-        textField.setPreferredSize(new Dimension(350, 28));
-        textField.setAlignmentX(Component.LEFT_ALIGNMENT);
+        textField.setPreferredSize(new Dimension(0, 32));
 
-        panel.add(label);
-        panel.add(Box.createVerticalStrut(4));
-        panel.add(textField);
+        panel.add(label, BorderLayout.NORTH);
+        panel.add(textField, BorderLayout.CENTER);
 
         return panel;
     }
@@ -193,6 +200,7 @@ public class SetupAdminView extends JFrame {
 
             this.dispose();
             LoginView loginView = new LoginView();
+            IconUtil.setWindowIcon(loginView);
             new LoginController(loginView, new UsuarioDAOImpl(connection));
             loginView.setVisible(true);
 

@@ -9,6 +9,8 @@ import java.awt.*;
 import java.awt.event.ActionListener;
 import java.awt.geom.Path2D;
 
+import com.minimarket.util.IconUtil;
+
 public class DashboardView extends JFrame {
 
     private JButton btnVentas;
@@ -29,6 +31,7 @@ public class DashboardView extends JFrame {
 
     public DashboardView() {
         initComponents();
+        IconUtil.setWindowIcon(this);
     }
 
     private void initComponents() {
