@@ -3,6 +3,7 @@ package com.minimarket.view;
 import com.minimarket.model.Cliente;
 import com.minimarket.model.Producto;
 import com.minimarket.model.Venta;
+import com.minimarket.util.CustomDialog;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -896,44 +897,41 @@ public class VentasView extends JPanel {
     private void handlePaymentMethodSelection(String methodKey) {
         BigDecimal total = getGranTotal();
         if (total.compareTo(BigDecimal.ZERO) <= 0) {
-            JOptionPane.showMessageDialog(this, "El carrito de compras está vacío. Agregue productos para poder calcular el pago.", "Carrito Vacío", JOptionPane.WARNING_MESSAGE);
+            CustomDialog.showWarning(this, "El carrito de compras está vacío. Agregue productos para poder calcular el pago.", "Carrito Vacío");
             return;
         }
 
         if ("Efectivo".equals(methodKey)) {
-            String input = JOptionPane.showInputDialog(this, 
+            String input = CustomDialog.showInput(this, 
                 "Monto total a pagar: S/ " + String.format("%.2f", total) + "\n\nIngrese el monto recibido (S/):", 
                 "Calculadora de Cambio en Efectivo", 
-                JOptionPane.QUESTION_MESSAGE);
+                null);
             
             if (input != null && !input.trim().isEmpty()) {
                 try {
                     BigDecimal recibido = new BigDecimal(input.trim());
                     if (recibido.compareTo(total) < 0) {
-                        JOptionPane.showMessageDialog(this, 
+                        CustomDialog.showWarning(this, 
                             "El monto recibido (S/ " + String.format("%.2f", recibido) + ") es menor al total a pagar (S/ " + String.format("%.2f", total) + ").", 
-                            "Monto Insuficiente", 
-                            JOptionPane.WARNING_MESSAGE);
+                            "Monto Insuficiente");
                     } else {
                         BigDecimal cambio = recibido.subtract(total);
-                        JOptionPane.showMessageDialog(this, 
+                        CustomDialog.showInfo(this, 
                             "=== DETALLE DE VENTA ===\n" +
                             "Total a Pagar: S/ " + String.format("%.2f", total) + "\n" +
                             "Recibido:      S/ " + String.format("%.2f", recibido) + "\n" +
                             "-------------------------\n" +
                             "CAMBIO A ENTREGAR: S/ " + String.format("%.2f", cambio), 
-                            "Cambio Calculado", 
-                            JOptionPane.INFORMATION_MESSAGE);
+                            "Cambio Calculado");
                     }
                 } catch (NumberFormatException e) {
-                    JOptionPane.showMessageDialog(this, "Por favor ingrese un número válido.", "Error de Formato", JOptionPane.ERROR_MESSAGE);
+                    CustomDialog.showError(this, "Por favor ingrese un número válido.", "Error de Formato");
                 }
             }
         } else if ("Tarjeta".equals(methodKey)) {
-            JOptionPane.showMessageDialog(this, 
+            CustomDialog.showInfo(this, 
                 "Terminal de Tarjeta activo.\n\nPor favor, acerque o inserte la tarjeta del cliente en el lector POS de mesa.", 
-                "Pago con Tarjeta", 
-                JOptionPane.INFORMATION_MESSAGE);
+                "Pago con Tarjeta");
         } else if ("QR".equals(methodKey)) {
             JPanel qrPanel = new JPanel(new BorderLayout(0, 10));
             qrPanel.setBorder(new EmptyBorder(10, 10, 10, 10));
@@ -990,7 +988,7 @@ public class VentasView extends JPanel {
             qrPanel.add(lblInstruction, BorderLayout.NORTH);
             qrPanel.add(mockQr, BorderLayout.CENTER);
             
-            JOptionPane.showMessageDialog(this, qrPanel, "Pago con QR / Yape / Plin", JOptionPane.PLAIN_MESSAGE);
+            CustomDialog.showInfo(this, qrPanel, "Pago con QR / Yape / Plin");
         }
     }
 
@@ -1180,9 +1178,11 @@ public class VentasView extends JPanel {
     }
 
     public void mostrarMensaje(String message, boolean isError) {
-        JOptionPane.showMessageDialog(this, message,
-                isError ? "Error" : "Éxito",
-                isError ? JOptionPane.ERROR_MESSAGE : JOptionPane.INFORMATION_MESSAGE);
+        if (isError) {
+            CustomDialog.showError(this, message, "Error");
+        } else {
+            CustomDialog.showSuccess(this, message, "Éxito");
+        }
     }
 
     public void clearFields() {

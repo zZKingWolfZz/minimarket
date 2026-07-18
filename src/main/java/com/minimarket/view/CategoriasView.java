@@ -2,6 +2,7 @@ package com.minimarket.view;
 
 import com.minimarket.model.Categoria;
 import com.minimarket.model.Producto;
+import com.minimarket.util.CustomDialog;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -561,9 +562,11 @@ public class CategoriasView extends JPanel {
     }
 
     public void mostrarMensaje(String message, boolean isError) {
-        JOptionPane.showMessageDialog(this, message,
-                isError ? "Error" : "Éxito",
-                isError ? JOptionPane.ERROR_MESSAGE : JOptionPane.INFORMATION_MESSAGE);
+        if (isError) {
+            CustomDialog.showError(this, message, "Error");
+        } else {
+            CustomDialog.showSuccess(this, message, "Éxito");
+        }
     }
 
     // Filtros locales

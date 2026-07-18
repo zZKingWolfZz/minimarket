@@ -3,6 +3,7 @@ package com.minimarket.view;
 import com.minimarket.dao.impl.UsuarioDAOImpl;
 import com.minimarket.model.Usuario;
 import com.minimarket.model.Rol;
+import com.minimarket.util.CustomDialog;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -286,18 +287,18 @@ public class UsuariosAddView extends JPanel {
         String selectedRole = (String) cbRole.getSelectedItem();
 
         if (username.isEmpty() || password.isEmpty() || confirmPassword.isEmpty() || nombre.isEmpty() || apPaterno.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Por favor complete todos los campos obligatorios (*) marcados.", "Campos Requeridos", JOptionPane.WARNING_MESSAGE);
+            CustomDialog.showWarning(this, "Por favor complete todos los campos obligatorios (*) marcados.", "Campos Requeridos");
             return;
         }
 
         if (!password.equals(confirmPassword)) {
-            JOptionPane.showMessageDialog(this, "Las contraseñas no coinciden. Verifique de nuevo.", "Contraseña Incorrecta", JOptionPane.WARNING_MESSAGE);
+            CustomDialog.showWarning(this, "Las contraseñas no coinciden. Verifique de nuevo.", "Contraseña Incorrecta");
             return;
         }
 
         try {
             if (connection == null) {
-                JOptionPane.showMessageDialog(this, "Registrado exitosamente (Modo Demo Offline).", "Éxito", JOptionPane.INFORMATION_MESSAGE);
+                CustomDialog.showSuccess(this, "Registrado exitosamente (Modo Demo Offline).", "Éxito");
                 return;
             }
 
@@ -307,7 +308,7 @@ public class UsuariosAddView extends JPanel {
                 ps.setString(1, username);
                 try (ResultSet rs = ps.executeQuery()) {
                     if (rs.next() && rs.getInt(1) > 0) {
-                        JOptionPane.showMessageDialog(this, "El nombre de usuario '" + username + "' ya está registrado. Elija otro.", "Usuario Duplicado", JOptionPane.WARNING_MESSAGE);
+                        CustomDialog.showWarning(this, "El nombre de usuario '" + username + "' ya está registrado. Elija otro.", "Usuario Duplicado");
                         return;
                     }
                 }
@@ -341,7 +342,7 @@ public class UsuariosAddView extends JPanel {
                 }
             }
 
-            JOptionPane.showMessageDialog(this, "¡Usuario registrado correctamente como " + selectedRole + "!", "Registro Exitoso", JOptionPane.INFORMATION_MESSAGE);
+            CustomDialog.showSuccess(this, "¡Usuario registrado correctamente como " + selectedRole + "!", "Registro Exitoso");
 
             // Clean fields
             txtUsername.setText("");
@@ -357,7 +358,7 @@ public class UsuariosAddView extends JPanel {
 
         } catch (SQLException ex) {
             ex.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Error de base de datos al guardar el usuario: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            CustomDialog.showError(this, "Error de base de datos al guardar el usuario: " + ex.getMessage(), "Error");
         }
     }
 }

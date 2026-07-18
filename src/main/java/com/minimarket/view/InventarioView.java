@@ -5,6 +5,7 @@ import com.minimarket.model.Stock;
 import com.minimarket.model.Categoria;
 import com.minimarket.dao.CategoriaDAO;
 import com.minimarket.dao.impl.CategoriaDAOImpl;
+import com.minimarket.util.CustomDialog;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -574,9 +575,11 @@ public class InventarioView extends JPanel {
     }
 
     public void mostrarMensaje(String message, boolean isError) {
-        JOptionPane.showMessageDialog(this, message,
-                isError ? "Error" : "Éxito",
-                isError ? JOptionPane.ERROR_MESSAGE : JOptionPane.INFORMATION_MESSAGE);
+        if (isError) {
+            CustomDialog.showError(this, message, "Error");
+        } else {
+            CustomDialog.showSuccess(this, message, "Éxito");
+        }
     }
 
     // --- COMBOBOX & BUTTON STYLING HELPERS ---

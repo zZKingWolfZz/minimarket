@@ -1,5 +1,6 @@
 package com.minimarket.view;
 
+import com.minimarket.util.CustomDialog;
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
 import javax.swing.table.DefaultTableCellRenderer;
@@ -404,9 +405,11 @@ public class ReportesView extends JPanel {
     public void addVerListaCompletaListener(ActionListener l) { btnVerLista.addActionListener(l); }
 
     public void mostrarMensaje(String message, boolean isError) {
-        JOptionPane.showMessageDialog(this, message,
-                isError ? "Error" : "Éxito",
-                isError ? JOptionPane.ERROR_MESSAGE : JOptionPane.INFORMATION_MESSAGE);
+        if (isError) {
+            CustomDialog.showError(this, message, "Error");
+        } else {
+            CustomDialog.showSuccess(this, message, "Éxito");
+        }
     }
 
     // --- CUSTOM CHART COMPONENTS ---

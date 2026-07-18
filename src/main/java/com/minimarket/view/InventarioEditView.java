@@ -8,6 +8,7 @@ import com.minimarket.dao.impl.StockDAOImpl;
 import com.minimarket.model.Producto;
 import com.minimarket.model.Stock;
 import com.minimarket.model.Categoria;
+import com.minimarket.util.CustomDialog;
 import com.minimarket.dao.CategoriaDAO;
 import com.minimarket.dao.impl.CategoriaDAOImpl;
 
@@ -598,10 +599,9 @@ public class InventarioEditView extends JPanel {
         String stockStr = txtStockInicial.getText().trim();
 
         if (name.isEmpty() || barcode.isEmpty() || ventaStr.isEmpty() || stockStr.isEmpty()) {
-            JOptionPane.showMessageDialog(this,
+            CustomDialog.showWarning(this,
                     "Por favor complete todos los campos obligatorios (*).",
-                    "Campos incompletos",
-                    JOptionPane.WARNING_MESSAGE);
+                    "Campos incompletos");
             return false;
         }
 
@@ -617,11 +617,10 @@ public class InventarioEditView extends JPanel {
             Connection connection = DatabaseConnection.getInstance().getConnection();
             if (connection == null) {
                 // Offline demo mode popup
-                JOptionPane.showMessageDialog(this,
+                CustomDialog.showSuccess(this,
                         "Se ha actualizado el producto localmente (Modo Demo Offline).\n\n" +
                                 "Nombre: " + name + "\nSKU: " + barcode + "\nPrecio: S/" + price,
-                        "Éxito (Modo Demo)",
-                        JOptionPane.INFORMATION_MESSAGE);
+                        "Éxito (Modo Demo)");
                 return true;
             }
 
@@ -642,24 +641,22 @@ public class InventarioEditView extends JPanel {
                     existingStock.setCantidad(stockQty);
                     boolean sUpdated = stockDAO.update(existingStock);
                     if (sUpdated) {
-                        JOptionPane.showMessageDialog(this,
+                        CustomDialog.showSuccess(this,
                                 "¡Producto y Stock actualizados exitosamente en la base de datos local!\n" +
                                         "ID: PRD-" + producto.getIdProducto() + "\n" +
                                         "Nuevo Stock: " + stockQty + " unidades.",
-                                "Actualización exitosa",
-                                JOptionPane.INFORMATION_MESSAGE);
+                                "Actualización exitosa");
                         return true;
                     }
                 } else {
                     Stock s = new Stock(stockQty, producto.getIdProducto());
                     boolean sInserted = stockDAO.insert(s);
                     if (sInserted) {
-                        JOptionPane.showMessageDialog(this,
+                        CustomDialog.showSuccess(this,
                                 "¡Stock registrado para producto existente en la base de datos local!\n" +
                                         "ID: PRD-" + producto.getIdProducto() + "\n" +
                                         "Stock: " + stockQty + " unidades.",
-                                "Registro exitoso",
-                                JOptionPane.INFORMATION_MESSAGE);
+                                "Registro exitoso");
                         return true;
                     }
                 }
@@ -667,15 +664,13 @@ public class InventarioEditView extends JPanel {
             throw new SQLException("Fallo al actualizar el producto existente.");
 
         } catch (NumberFormatException e) {
-            JOptionPane.showMessageDialog(this,
+            CustomDialog.showError(this,
                     "Verifique que los precios y el stock contengan formatos numéricos válidos.",
-                    "Formato de número inválido",
-                    JOptionPane.ERROR_MESSAGE);
+                    "Formato de número inválido");
         } catch (java.sql.SQLException e) {
-            JOptionPane.showMessageDialog(this,
+            CustomDialog.showError(this,
                     "Error de base de datos al guardar: " + e.getMessage(),
-                    "Error de base de datos",
-                    JOptionPane.ERROR_MESSAGE);
+                    "Error de base de datos");
             e.printStackTrace();
         }
         return false;

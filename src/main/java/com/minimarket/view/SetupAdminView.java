@@ -3,6 +3,7 @@ package com.minimarket.view;
 import com.minimarket.dao.impl.UsuarioDAOImpl;
 import com.minimarket.controller.LoginController;
 import com.minimarket.config.DatabaseConnection;
+import com.minimarket.util.CustomDialog;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -149,12 +150,12 @@ public class SetupAdminView extends JFrame {
         String apMaterno = txtApellidoMaterno.getText().trim();
 
         if (username.isEmpty() || password.isEmpty() || confirmPassword.isEmpty() || nombre.isEmpty() || apPaterno.isEmpty()) {
-            JOptionPane.showMessageDialog(this, "Por favor complete todos los campos obligatorios (*) marcados.", "Campos Requeridos", JOptionPane.WARNING_MESSAGE);
+            CustomDialog.showWarning(this, "Por favor complete todos los campos obligatorios (*) marcados.", "Campos Requeridos");
             return;
         }
 
         if (!password.equals(confirmPassword)) {
-            JOptionPane.showMessageDialog(this, "Las contraseñas no coinciden. Verifique de nuevo.", "Contraseña Incorrecta", JOptionPane.WARNING_MESSAGE);
+            CustomDialog.showWarning(this, "Las contraseñas no coinciden. Verifique de nuevo.", "Contraseña Incorrecta");
             return;
         }
 
@@ -165,7 +166,7 @@ public class SetupAdminView extends JFrame {
                 ps.setString(1, username);
                 try (ResultSet rs = ps.executeQuery()) {
                     if (rs.next() && rs.getInt(1) > 0) {
-                        JOptionPane.showMessageDialog(this, "El nombre de usuario '" + username + "' ya está registrado. Elija otro.", "Usuario Duplicado", JOptionPane.WARNING_MESSAGE);
+                        CustomDialog.showWarning(this, "El nombre de usuario '" + username + "' ya está registrado. Elija otro.", "Usuario Duplicado");
                         return;
                     }
                 }
@@ -197,7 +198,7 @@ public class SetupAdminView extends JFrame {
                 }
             }
 
-            JOptionPane.showMessageDialog(this, "¡Administrador registrado correctamente!\nAhora puede iniciar sesión.", "Registro Exitoso", JOptionPane.INFORMATION_MESSAGE);
+            CustomDialog.showSuccess(this, "¡Administrador registrado correctamente!\nAhora puede iniciar sesión.", "Registro Exitoso");
 
             // Mark setup as completed in database properties
             DatabaseConnection.getInstance().saveProperty("db.setup.completed", "true");
@@ -210,7 +211,7 @@ public class SetupAdminView extends JFrame {
 
         } catch (SQLException ex) {
             ex.printStackTrace();
-            JOptionPane.showMessageDialog(this, "Error de base de datos al guardar el usuario: " + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+            CustomDialog.showError(this, "Error de base de datos al guardar el usuario: " + ex.getMessage(), "Error");
         }
     }
 }
