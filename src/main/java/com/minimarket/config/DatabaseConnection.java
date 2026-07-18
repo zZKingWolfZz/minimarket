@@ -9,6 +9,7 @@ import java.io.InputStream;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Properties;
 
 public class DatabaseConnection {
@@ -85,7 +86,7 @@ public class DatabaseConnection {
             } else {
                 // Default fallback
                 properties.setProperty("db.driver", "com.mysql.cj.jdbc.Driver");
-                properties.setProperty("db.url", "jdbc:mysql://localhost:3306/minimarket_yuly?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true");
+                properties.setProperty("db.url", "jdbc:mysql://localhost:3306/minimarket_yuly?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true");
                 properties.setProperty("db.username", "root");
                 properties.setProperty("db.password", "1234");
             }
@@ -97,13 +98,16 @@ public class DatabaseConnection {
 
     public void setConnectionSettings(String host, String port, String database, String username, String password) throws SQLException {
         synchronized (connectionLock) {
-            String url = "jdbc:mysql://" + host + ":" + port + "/" + database + "?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true&createDatabaseIfNotExist=true";
+            String baseUrl = "jdbc:mysql://" + host + ":" + port + "/?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true";
             
-            // Test connection first
-            Connection testConn = DriverManager.getConnection(url, username, password);
-            testConn.close();
+            // 1. Test connection to the MySQL server and create the database if it doesn't exist
+            try (Connection testConn = DriverManager.getConnection(baseUrl, username, password);
+                 Statement stmt = testConn.createStatement()) {
+                stmt.execute("CREATE DATABASE IF NOT EXISTS " + database);
+            }
             
-            // Save to active properties
+            // 2. Save the URL (WITHOUT createDatabaseIfNotExist) to properties
+            String url = "jdbc:mysql://" + host + ":" + port + "/" + database + "?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true";
             properties.setProperty("db.url", url);
             properties.setProperty("db.username", username);
             properties.setProperty("db.password", password);
