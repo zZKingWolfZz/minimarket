@@ -146,6 +146,10 @@ ISCC minimarket.iss
 Esto creará el instalador autoejecutable en:
 *   📂 `target/MiniMarket_Setup.exe`
 
+### 🚀 Lanzamientos y Versión Portable
+Para obtener instrucciones detalladas sobre cómo compilar los ejecutables y publicarlos en la sección de **Releases** de GitHub, consulta la guía de lanzamientos:
+*   📄 [RELEASES.md](file:///c:/Users/arnie/.gemini/antigravity-ide/scratch/minimarket-arquitectura-unificado/RELEASES.md)
+
 ---
 
 ## 🧪 Pruebas y Control de Calidad

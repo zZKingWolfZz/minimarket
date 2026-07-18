@@ -15,11 +15,11 @@ PrivilegesRequired=lowest
 Source: "C:\Users\arnie\.gemini\antigravity-ide\scratch\minimarket-arquitectura-unificado\target\MiniMarket.exe"; DestDir: "{app}"; Flags: ignoreversion
 
 [Icons]
-Name: "{group}\MiniMarket Yuly"; Filename: "{app}\MiniMarket.exe"
-Name: "{autodesktop}\MiniMarket Yuly"; Filename: "{app}\MiniMarket.exe"; Tasks: desktopicon
+Name: "{group}\MiniMarket Yuly"; Filename: "{app}\MiniMarket.exe"; WorkingDir: "{app}"
+Name: "{autodesktop}\MiniMarket Yuly"; Filename: "{app}\MiniMarket.exe"; WorkingDir: "{app}"; Tasks: desktopicon
 
 [Tasks]
 Name: "desktopicon"; Description: "Crear un acceso directo en el Escritorio"; GroupDescription: "Accesos directos adicionales:"
 
 [Run]
-Filename: "{app}\MiniMarket.exe"; Description: "Ejecutar MiniMarket Yuly"; Flags: postinstall nowait skipifsilent
+Filename: "{app}\MiniMarket.exe"; Description: "Ejecutar MiniMarket Yuly"; WorkingDir: "{app}"; Flags: postinstall nowait skipifsilent

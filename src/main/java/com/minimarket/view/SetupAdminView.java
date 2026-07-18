@@ -2,6 +2,7 @@ package com.minimarket.view;
 
 import com.minimarket.dao.impl.UsuarioDAOImpl;
 import com.minimarket.controller.LoginController;
+import com.minimarket.config.DatabaseConnection;
 
 import javax.swing.*;
 import javax.swing.border.EmptyBorder;
@@ -197,6 +198,9 @@ public class SetupAdminView extends JFrame {
             }
 
             JOptionPane.showMessageDialog(this, "¡Administrador registrado correctamente!\nAhora puede iniciar sesión.", "Registro Exitoso", JOptionPane.INFORMATION_MESSAGE);
+
+            // Mark setup as completed in database properties
+            DatabaseConnection.getInstance().saveProperty("db.setup.completed", "true");
 
             this.dispose();
             LoginView loginView = new LoginView();

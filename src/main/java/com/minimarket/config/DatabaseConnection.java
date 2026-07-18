@@ -41,10 +41,29 @@ public class DatabaseConnection {
         );
     }
 
+    private File getPropertiesFile() {
+        String userHome = System.getProperty("user.home");
+        File configDir = new File(userHome, ".minimarket");
+        return new File(configDir, "database.properties");
+    }
+
     private void loadProperties() {
         properties = new Properties();
         
-        // 1. Try to load from external file in working directory
+        // 1. Try to load from user home folder
+        File userHomeFile = getPropertiesFile();
+        if (userHomeFile.exists()) {
+            try (InputStream input = new FileInputStream(userHomeFile)) {
+                properties.load(input);
+                System.out.println("Loaded database configuration from user home: " + userHomeFile.getAbsolutePath());
+                Class.forName(properties.getProperty("db.driver"));
+                return;
+            } catch (Exception ex) {
+                System.err.println("Failed to load user home properties, falling back: " + ex.getMessage());
+            }
+        }
+        
+        // 2. Try to load from external file in working directory
         File externalFile = new File("database.properties");
         if (externalFile.exists()) {
             try (InputStream input = new FileInputStream(externalFile)) {
@@ -57,7 +76,7 @@ public class DatabaseConnection {
             }
         }
         
-        // 2. Fall back to classpath resource
+        // 3. Fall back to classpath resource
         try (InputStream input = getClass().getClassLoader().getResourceAsStream("database.properties")) {
             if (input != null) {
                 properties.load(input);
@@ -100,13 +119,34 @@ public class DatabaseConnection {
                 rawConnection = null;
             }
             
-            // Write to external file database.properties
-            File externalFile = new File("database.properties");
+            // Write to user home folder database.properties
+            File externalFile = getPropertiesFile();
+            File parent = externalFile.getParentFile();
+            if (parent != null && !parent.exists()) {
+                parent.mkdirs();
+            }
             try (OutputStream output = new FileOutputStream(externalFile)) {
                 properties.store(output, "External Database Configuration");
-                System.out.println("Saved database configuration to external file: " + externalFile.getAbsolutePath());
+                System.out.println("Saved database configuration to: " + externalFile.getAbsolutePath());
             } catch (IOException e) {
-                System.err.println("Error saving external database.properties: " + e.getMessage());
+                System.err.println("Error saving database.properties: " + e.getMessage());
+            }
+        }
+    }
+
+    public void saveProperty(String key, String value) {
+        synchronized (connectionLock) {
+            properties.setProperty(key, value);
+            File externalFile = getPropertiesFile();
+            File parent = externalFile.getParentFile();
+            if (parent != null && !parent.exists()) {
+                parent.mkdirs();
+            }
+            try (OutputStream output = new FileOutputStream(externalFile)) {
+                properties.store(output, "Updated Property: " + key);
+                System.out.println("Saved property " + key + "=" + value + " to: " + externalFile.getAbsolutePath());
+            } catch (IOException e) {
+                System.err.println("Error saving database properties: " + e.getMessage());
             }
         }
     }
