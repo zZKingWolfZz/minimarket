@@ -1,7 +1,6 @@
 -- Script para poblar la base de datos de MiniMarket con datos reales
 -- Configurado para la base de datos: minimarket_yuly
 
-USE minimarket_yuly;
 
 -- Desactivar temporalmente revisión de claves foráneas para truncar tablas de manera segura
 SET FOREIGN_KEY_CHECKS = 0;

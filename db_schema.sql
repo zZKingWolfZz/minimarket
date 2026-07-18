@@ -1,8 +1,6 @@
 -- Script de inicialización para la base de datos de MiniMarket
 -- Ajustado exactamente al diagrama de base de datos provisto
 
-CREATE DATABASE IF NOT EXISTS minimarket_yuly;
-USE minimarket_yuly;
 
 -- Eliminar tablas en orden inverso para evitar conflictos de claves foráneas
 DROP TABLE IF EXISTS venta;
