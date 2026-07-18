@@ -34,6 +34,21 @@ public class App {
     private static final Logger logger = LoggerFactory.getLogger(App.class);
 
     private static Connection checkAndPromptDatabase() {
+        if (!DatabaseConnection.getInstance().isConfigured()) {
+            logger.info("Fresh installation detected. No database configuration file found. Launching DatabaseConfigView...");
+            DatabaseConfigView configView = new DatabaseConfigView(null);
+            configView.setVisible(true);
+            
+            if (configView.isConnectionSuccessful()) {
+                try {
+                    return DatabaseConnection.getInstance().getConnection();
+                } catch (Exception e) {
+                    logger.error("Failed to retrieve connection after user configuration: ", e);
+                }
+            }
+            return null;
+        }
+
         try {
             if (DatabaseConnection.getInstance().checkHealth()) {
                 return DatabaseConnection.getInstance().getConnection();

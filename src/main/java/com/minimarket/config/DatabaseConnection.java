@@ -189,6 +189,10 @@ public class DatabaseConnection {
         }
     }
 
+    public boolean isConfigured() {
+        return getPropertiesFile().exists() || new File("database.properties").exists();
+    }
+
     public boolean checkHealth() {
         synchronized (connectionLock) {
             try {
