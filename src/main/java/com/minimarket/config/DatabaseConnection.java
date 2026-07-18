@@ -50,6 +50,7 @@ public class DatabaseConnection {
 
     private void loadProperties() {
         properties = new Properties();
+        boolean loaded = false;
         
         // 1. Try to load from user home folder
         File userHomeFile = getPropertiesFile();
@@ -58,41 +59,59 @@ public class DatabaseConnection {
                 properties.load(input);
                 System.out.println("Loaded database configuration from user home: " + userHomeFile.getAbsolutePath());
                 Class.forName(properties.getProperty("db.driver"));
-                return;
+                loaded = true;
             } catch (Exception ex) {
                 System.err.println("Failed to load user home properties, falling back: " + ex.getMessage());
             }
         }
         
         // 2. Try to load from external file in working directory
-        File externalFile = new File("database.properties");
-        if (externalFile.exists()) {
-            try (InputStream input = new FileInputStream(externalFile)) {
-                properties.load(input);
-                System.out.println("Loaded database configuration from external file: " + externalFile.getAbsolutePath());
-                Class.forName(properties.getProperty("db.driver"));
-                return;
-            } catch (Exception ex) {
-                System.err.println("Failed to load external properties, falling back to classpath: " + ex.getMessage());
+        if (!loaded) {
+            File externalFile = new File("database.properties");
+            if (externalFile.exists()) {
+                try (InputStream input = new FileInputStream(externalFile)) {
+                    properties.load(input);
+                    System.out.println("Loaded database configuration from external file: " + externalFile.getAbsolutePath());
+                    Class.forName(properties.getProperty("db.driver"));
+                    loaded = true;
+                } catch (Exception ex) {
+                    System.err.println("Failed to load external properties, falling back to classpath: " + ex.getMessage());
+                }
             }
         }
         
         // 3. Fall back to classpath resource
-        try (InputStream input = getClass().getClassLoader().getResourceAsStream("database.properties")) {
-            if (input != null) {
-                properties.load(input);
-                System.out.println("Loaded database configuration from classpath resource.");
-                Class.forName(properties.getProperty("db.driver"));
-            } else {
-                // Default fallback
-                properties.setProperty("db.driver", "com.mysql.cj.jdbc.Driver");
-                properties.setProperty("db.url", "jdbc:mysql://localhost:3306/minimarket_yuly?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true");
-                properties.setProperty("db.username", "root");
-                properties.setProperty("db.password", "1234");
+        if (!loaded) {
+            try (InputStream input = getClass().getClassLoader().getResourceAsStream("database.properties")) {
+                if (input != null) {
+                    properties.load(input);
+                    System.out.println("Loaded database configuration from classpath resource.");
+                    Class.forName(properties.getProperty("db.driver"));
+                } else {
+                    // Default fallback
+                    properties.setProperty("db.driver", "com.mysql.cj.jdbc.Driver");
+                    properties.setProperty("db.url", "jdbc:mysql://localhost:3306/minimarket_yuly?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true");
+                    properties.setProperty("db.username", "root");
+                    properties.setProperty("db.password", "1234");
+                }
+            } catch (Exception ex) {
+                System.err.println("Error loading properties: " + ex.getMessage());
+                ex.printStackTrace();
             }
-        } catch (Exception ex) {
-            System.err.println("Error loading properties: " + ex.getMessage());
-            ex.printStackTrace();
+        }
+
+        sanitizeUrl();
+    }
+
+    private void sanitizeUrl() {
+        String url = properties.getProperty("db.url");
+        if (url != null && url.contains("createDatabaseIfNotExist=")) {
+            url = url.replaceAll("([&?])createDatabaseIfNotExist=[a-zA-Z0-9]+", "");
+            if (url.endsWith("?") || url.endsWith("&")) {
+                url = url.substring(0, url.length() - 1);
+            }
+            properties.setProperty("db.url", url);
+            System.out.println("Sanitized database URL (removed createDatabaseIfNotExist): " + url);
         }
     }
 
