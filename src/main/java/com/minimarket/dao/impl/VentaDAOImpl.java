@@ -28,7 +28,7 @@ public class VentaDAOImpl implements VentaDAO {
 
         String selectStockSql = "SELECT Id_stock, Cantidad FROM stock WHERE Id_Producto = ? FOR UPDATE";
         String updateStockSql = "UPDATE stock SET Cantidad = ? WHERE Id_stock = ?";
-        String insertVentaSql = "INSERT INTO venta (Id_producto, cantidad, Precio_total, Fecha, Id_cliente) VALUES (?, ?, ?, ?, ?)";
+        String insertVentaSql = "INSERT INTO venta (Id_producto, cantidad, Precio_total, Fecha, Id_cliente, metodo_pago) VALUES (?, ?, ?, ?, ?, ?)";
 
         try {
 
@@ -70,6 +70,7 @@ public class VentaDAOImpl implements VentaDAO {
                 psInsertVenta.setBigDecimal(3, venta.getPrecioTotal());
                 psInsertVenta.setDate(4, Date.valueOf(venta.getFecha()));
                 psInsertVenta.setInt(5, venta.getIdCliente());
+                psInsertVenta.setString(6, venta.getMetodoPago());
 
                 int rows = psInsertVenta.executeUpdate();
                 if (rows > 0) {
@@ -106,7 +107,7 @@ public class VentaDAOImpl implements VentaDAO {
 
     @Override
     public Venta findById(Integer id) throws SQLException {
-        String sql = "SELECT Id_venta, Id_producto, cantidad, Precio_total, Fecha, Id_cliente FROM venta WHERE Id_venta = ?";
+        String sql = "SELECT Id_venta, Id_producto, cantidad, Precio_total, Fecha, Id_cliente, metodo_pago FROM venta WHERE Id_venta = ?";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setInt(1, id);
             try (ResultSet rs = ps.executeQuery()) {
@@ -117,7 +118,8 @@ public class VentaDAOImpl implements VentaDAO {
                             rs.getInt("cantidad"),
                             rs.getBigDecimal("Precio_total"),
                             rs.getDate("Fecha").toLocalDate(),
-                            rs.getInt("Id_cliente")
+                            rs.getInt("Id_cliente"),
+                            rs.getString("metodo_pago")
                     );
                 }
             }
@@ -128,7 +130,7 @@ public class VentaDAOImpl implements VentaDAO {
     @Override
     public List<Venta> findAll() throws SQLException {
         List<Venta> ventas = new ArrayList<>();
-        String sql = "SELECT Id_venta, Id_producto, cantidad, Precio_total, Fecha, Id_cliente FROM venta";
+        String sql = "SELECT Id_venta, Id_producto, cantidad, Precio_total, Fecha, Id_cliente, metodo_pago FROM venta";
         try (PreparedStatement ps = connection.prepareStatement(sql);
              ResultSet rs = ps.executeQuery()) {
             while (rs.next()) {
@@ -138,7 +140,8 @@ public class VentaDAOImpl implements VentaDAO {
                         rs.getInt("cantidad"),
                         rs.getBigDecimal("Precio_total"),
                         rs.getDate("Fecha").toLocalDate(),
-                        rs.getInt("Id_cliente")
+                        rs.getInt("Id_cliente"),
+                        rs.getString("metodo_pago")
                 ));
             }
         }
@@ -148,13 +151,14 @@ public class VentaDAOImpl implements VentaDAO {
     @Override
     public boolean insert(Venta entity) throws SQLException {
 
-        String sql = "INSERT INTO venta (Id_producto, cantidad, Precio_total, Fecha, Id_cliente) VALUES (?, ?, ?, ?, ?)";
+        String sql = "INSERT INTO venta (Id_producto, cantidad, Precio_total, Fecha, Id_cliente, metodo_pago) VALUES (?, ?, ?, ?, ?, ?)";
         try (PreparedStatement ps = connection.prepareStatement(sql, Statement.RETURN_GENERATED_KEYS)) {
             ps.setInt(1, entity.getIdProducto());
             ps.setInt(2, entity.getCantidad());
             ps.setBigDecimal(3, entity.getPrecioTotal());
             ps.setDate(4, Date.valueOf(entity.getFecha()));
             ps.setInt(5, entity.getIdCliente());
+            ps.setString(6, entity.getMetodoPago());
             int affectedRows = ps.executeUpdate();
             if (affectedRows > 0) {
                 try (ResultSet generatedKeys = ps.getGeneratedKeys()) {
@@ -170,14 +174,15 @@ public class VentaDAOImpl implements VentaDAO {
 
     @Override
     public boolean update(Venta entity) throws SQLException {
-        String sql = "UPDATE venta SET Id_producto = ?, cantidad = ?, Precio_total = ?, Fecha = ?, Id_cliente = ? WHERE Id_venta = ?";
+        String sql = "UPDATE venta SET Id_producto = ?, cantidad = ?, Precio_total = ?, Fecha = ?, Id_cliente = ?, metodo_pago = ? WHERE Id_venta = ?";
         try (PreparedStatement ps = connection.prepareStatement(sql)) {
             ps.setInt(1, entity.getIdProducto());
             ps.setInt(2, entity.getCantidad());
             ps.setBigDecimal(3, entity.getPrecioTotal());
             ps.setDate(4, Date.valueOf(entity.getFecha()));
             ps.setInt(5, entity.getIdCliente());
-            ps.setInt(6, entity.getIdVenta());
+            ps.setString(6, entity.getMetodoPago());
+            ps.setInt(7, entity.getIdVenta());
             return ps.executeUpdate() > 0;
         }
     }

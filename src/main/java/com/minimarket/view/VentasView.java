@@ -42,6 +42,11 @@ public class VentasView extends JPanel {
     private JButton btnRegistrar;
     private JButton btnLimpiarCart;
 
+    private String selectedPaymentMethod = "Efectivo";
+    private JButton btnPayEfectivo;
+    private JButton btnPayTarjeta;
+    private JButton btnPayQR;
+
     // Direct adding components (Kept invisible in the background to ensure 100%
     // controller compatibility)
     private JComboBox<Producto> cbProductos;
@@ -506,9 +511,12 @@ public class VentasView extends JPanel {
 
         JPanel payMethodsGrid = new JPanel(new GridLayout(1, 3, 10, 0));
         payMethodsGrid.setOpaque(false);
-        payMethodsGrid.add(createPayMethodBtn("[ S/ ]\nEfectivo"));
-        payMethodsGrid.add(createPayMethodBtn("[ █ ]\nTarjeta"));
-        payMethodsGrid.add(createPayMethodBtn("[ QR ]\nQR / Transfer"));
+        btnPayEfectivo = createPayMethodBtn("[ S/ ]\nEfectivo", "Efectivo");
+        btnPayTarjeta = createPayMethodBtn("[ █ ]\nTarjeta", "Tarjeta");
+        btnPayQR = createPayMethodBtn("[ QR ]\nQR / Transfer", "QR");
+        payMethodsGrid.add(btnPayEfectivo);
+        payMethodsGrid.add(btnPayTarjeta);
+        payMethodsGrid.add(btnPayQR);
         summaryCard.add(payMethodsGrid);
         summaryCard.add(Box.createVerticalStrut(20));
 
@@ -829,22 +837,42 @@ public class VentasView extends JPanel {
         return panel;
     }
 
-    private JButton createPayMethodBtn(String text) {
+    public String getSelectedPaymentMethod() {
+        return selectedPaymentMethod;
+    }
+
+    public BigDecimal getGranTotal() {
+        BigDecimal sum = BigDecimal.ZERO;
+        for (CartItem item : cartItems) {
+            sum = sum.add(item.getSubtotal());
+        }
+        return sum;
+    }
+
+    private JButton createPayMethodBtn(String text, String methodKey) {
         JButton btn = new JButton("<html><center>" + text.replaceAll("\n", "<br>") + "</center></html>") {
             @Override
             protected void paintComponent(Graphics g) {
                 Graphics2D g2 = (Graphics2D) g.create();
                 g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-                if (getModel().isPressed()) {
-                    g2.setColor(new Color(241, 245, 249));
-                } else if (getModel().isRollover()) {
-                    g2.setColor(new Color(248, 250, 252));
+                boolean isSelected = methodKey.equals(selectedPaymentMethod);
+                if (isSelected) {
+                    g2.setColor(new Color(219, 234, 254)); // Light blue bg
+                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
+                    g2.setColor(new Color(24, 119, 242)); // Blue border
+                    g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 8, 8);
                 } else {
-                    g2.setColor(Color.WHITE);
+                    if (getModel().isPressed()) {
+                        g2.setColor(new Color(241, 245, 249));
+                    } else if (getModel().isRollover()) {
+                        g2.setColor(new Color(248, 250, 252));
+                    } else {
+                        g2.setColor(Color.WHITE);
+                    }
+                    g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
+                    g2.setColor(new Color(226, 232, 240));
+                    g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 8, 8);
                 }
-                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
-                g2.setColor(new Color(226, 232, 240));
-                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 8, 8);
                 g2.dispose();
                 super.paintComponent(g);
             }
@@ -855,7 +883,115 @@ public class VentasView extends JPanel {
         btn.setFocusPainted(false);
         btn.setCursor(new Cursor(Cursor.HAND_CURSOR));
         btn.setBorder(new EmptyBorder(10, 5, 10, 5));
+        btn.addActionListener(e -> {
+            selectedPaymentMethod = methodKey;
+            if (btnPayEfectivo != null) btnPayEfectivo.repaint();
+            if (btnPayTarjeta != null) btnPayTarjeta.repaint();
+            if (btnPayQR != null) btnPayQR.repaint();
+            handlePaymentMethodSelection(methodKey);
+        });
         return btn;
+    }
+
+    private void handlePaymentMethodSelection(String methodKey) {
+        BigDecimal total = getGranTotal();
+        if (total.compareTo(BigDecimal.ZERO) <= 0) {
+            JOptionPane.showMessageDialog(this, "El carrito de compras está vacío. Agregue productos para poder calcular el pago.", "Carrito Vacío", JOptionPane.WARNING_MESSAGE);
+            return;
+        }
+
+        if ("Efectivo".equals(methodKey)) {
+            String input = JOptionPane.showInputDialog(this, 
+                "Monto total a pagar: S/ " + String.format("%.2f", total) + "\n\nIngrese el monto recibido (S/):", 
+                "Calculadora de Cambio en Efectivo", 
+                JOptionPane.QUESTION_MESSAGE);
+            
+            if (input != null && !input.trim().isEmpty()) {
+                try {
+                    BigDecimal recibido = new BigDecimal(input.trim());
+                    if (recibido.compareTo(total) < 0) {
+                        JOptionPane.showMessageDialog(this, 
+                            "El monto recibido (S/ " + String.format("%.2f", recibido) + ") es menor al total a pagar (S/ " + String.format("%.2f", total) + ").", 
+                            "Monto Insuficiente", 
+                            JOptionPane.WARNING_MESSAGE);
+                    } else {
+                        BigDecimal cambio = recibido.subtract(total);
+                        JOptionPane.showMessageDialog(this, 
+                            "=== DETALLE DE VENTA ===\n" +
+                            "Total a Pagar: S/ " + String.format("%.2f", total) + "\n" +
+                            "Recibido:      S/ " + String.format("%.2f", recibido) + "\n" +
+                            "-------------------------\n" +
+                            "CAMBIO A ENTREGAR: S/ " + String.format("%.2f", cambio), 
+                            "Cambio Calculado", 
+                            JOptionPane.INFORMATION_MESSAGE);
+                    }
+                } catch (NumberFormatException e) {
+                    JOptionPane.showMessageDialog(this, "Por favor ingrese un número válido.", "Error de Formato", JOptionPane.ERROR_MESSAGE);
+                }
+            }
+        } else if ("Tarjeta".equals(methodKey)) {
+            JOptionPane.showMessageDialog(this, 
+                "Terminal de Tarjeta activo.\n\nPor favor, acerque o inserte la tarjeta del cliente en el lector POS de mesa.", 
+                "Pago con Tarjeta", 
+                JOptionPane.INFORMATION_MESSAGE);
+        } else if ("QR".equals(methodKey)) {
+            JPanel qrPanel = new JPanel(new BorderLayout(0, 10));
+            qrPanel.setBorder(new EmptyBorder(10, 10, 10, 10));
+            
+            JLabel lblInstruction = new JLabel("Escanee el código QR para transferir S/ " + String.format("%.2f", total) + " (Yape / Plin):", JLabel.CENTER);
+            lblInstruction.setFont(new Font("Segoe UI", Font.BOLD, 12));
+            lblInstruction.setForeground(new Color(15, 23, 42));
+            
+            JPanel mockQr = new JPanel() {
+                @Override
+                protected void paintComponent(Graphics g) {
+                    super.paintComponent(g);
+                    Graphics2D g2 = (Graphics2D) g.create();
+                    g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                    g2.setColor(Color.WHITE);
+                    g2.fillRect(0, 0, getWidth(), getHeight());
+                    
+                    g2.setColor(Color.BLACK);
+                    // Draw outer squares
+                    g2.fillRect(20, 20, 30, 30);
+                    g2.setColor(Color.WHITE);
+                    g2.fillRect(26, 26, 18, 18);
+                    g2.setColor(Color.BLACK);
+                    g2.fillRect(30, 30, 10, 10);
+                    
+                    g2.fillRect(110, 20, 30, 30);
+                    g2.setColor(Color.WHITE);
+                    g2.fillRect(116, 26, 18, 18);
+                    g2.setColor(Color.BLACK);
+                    g2.fillRect(120, 30, 10, 10);
+                    
+                    g2.fillRect(20, 110, 30, 30);
+                    g2.setColor(Color.WHITE);
+                    g2.fillRect(26, 116, 18, 18);
+                    g2.setColor(Color.BLACK);
+                    g2.fillRect(30, 120, 10, 10);
+                    
+                    // Draw some random blocks to simulate QR data
+                    g2.fillRect(70, 30, 15, 10);
+                    g2.fillRect(90, 45, 10, 20);
+                    g2.fillRect(60, 70, 30, 15);
+                    g2.fillRect(110, 80, 15, 15);
+                    g2.fillRect(30, 75, 15, 10);
+                    g2.fillRect(80, 110, 20, 10);
+                    g2.fillRect(110, 120, 20, 15);
+                    g2.fillRect(65, 130, 15, 10);
+                    
+                    g2.dispose();
+                }
+            };
+            mockQr.setPreferredSize(new Dimension(160, 160));
+            mockQr.setBorder(BorderFactory.createLineBorder(new Color(226, 232, 240), 1));
+            
+            qrPanel.add(lblInstruction, BorderLayout.NORTH);
+            qrPanel.add(mockQr, BorderLayout.CENTER);
+            
+            JOptionPane.showMessageDialog(this, qrPanel, "Pago con QR / Yape / Plin", JOptionPane.PLAIN_MESSAGE);
+        }
     }
 
     // --- CONTROLLER API BINDINGS (100% COMPATIBLE) ---
@@ -1051,6 +1187,10 @@ public class VentasView extends JPanel {
 
     public void clearFields() {
         cartItems.clear();
+        selectedPaymentMethod = "Efectivo";
+        if (btnPayEfectivo != null) btnPayEfectivo.repaint();
+        if (btnPayTarjeta != null) btnPayTarjeta.repaint();
+        if (btnPayQR != null) btnPayQR.repaint();
         updateCartTable();
         if (cbProductos.getItemCount() > 0) {
             cbProductos.setSelectedIndex(0);

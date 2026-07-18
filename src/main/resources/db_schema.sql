@@ -79,6 +79,7 @@ CREATE TABLE venta (
     Precio_total DECIMAL(10, 2) NOT NULL,
     Fecha DATE NOT NULL,
     Id_cliente INT NOT NULL,
+    metodo_pago VARCHAR(50) NOT NULL DEFAULT 'Efectivo',
     FOREIGN KEY (Id_producto) REFERENCES producto(Id_producto) ON DELETE RESTRICT,
     FOREIGN KEY (Id_cliente) REFERENCES cliente(Id_cliente) ON DELETE RESTRICT
 );

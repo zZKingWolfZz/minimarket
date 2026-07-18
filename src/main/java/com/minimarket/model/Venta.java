@@ -10,24 +10,35 @@ public class Venta {
     private BigDecimal precioTotal;
     private LocalDate fecha;
     private int idCliente;
+    private String metodoPago;
 
     public Venta() {}
 
-    public Venta(int idVenta, int idProducto, int cantidad, BigDecimal precioTotal, LocalDate fecha, int idCliente) {
+    public Venta(int idVenta, int idProducto, int cantidad, BigDecimal precioTotal, LocalDate fecha, int idCliente, String metodoPago) {
         this.idVenta = idVenta;
         this.idProducto = idProducto;
         this.cantidad = cantidad;
         this.precioTotal = precioTotal;
         this.fecha = fecha;
         this.idCliente = idCliente;
+        this.metodoPago = metodoPago;
     }
 
-    public Venta(int idProducto, int cantidad, BigDecimal precioTotal, LocalDate fecha, int idCliente) {
+    public Venta(int idProducto, int cantidad, BigDecimal precioTotal, LocalDate fecha, int idCliente, String metodoPago) {
         this.idProducto = idProducto;
         this.cantidad = cantidad;
         this.precioTotal = precioTotal;
         this.fecha = fecha;
         this.idCliente = idCliente;
+        this.metodoPago = metodoPago;
+    }
+
+    public Venta(int idVenta, int idProducto, int cantidad, BigDecimal precioTotal, LocalDate fecha, int idCliente) {
+        this(idVenta, idProducto, cantidad, precioTotal, fecha, idCliente, "Efectivo");
+    }
+
+    public Venta(int idProducto, int cantidad, BigDecimal precioTotal, LocalDate fecha, int idCliente) {
+        this(idProducto, cantidad, precioTotal, fecha, idCliente, "Efectivo");
     }
 
     public int getIdVenta() {
@@ -78,6 +89,14 @@ public class Venta {
         this.idCliente = idCliente;
     }
 
+    public String getMetodoPago() {
+        return metodoPago;
+    }
+
+    public void setMetodoPago(String metodoPago) {
+        this.metodoPago = metodoPago;
+    }
+
     @Override
     public String toString() {
         return "Venta{" +
@@ -87,6 +106,7 @@ public class Venta {
                 ", precioTotal=" + precioTotal +
                 ", fecha=" + fecha +
                 ", idCliente=" + idCliente +
+                ", metodoPago='" + metodoPago + '\'' +
                 '}';
     }
 }

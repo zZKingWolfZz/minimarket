@@ -125,7 +125,8 @@ public class VentasController {
                             item.getCantidad(),
                             item.getSubtotal(),
                             LocalDate.now(),
-                            cliente.getIdCliente()
+                            cliente.getIdCliente(),
+                            view.getSelectedPaymentMethod()
                     );
                     ventaDAO.registrarVentaTransaccional(venta);
                     registrados++;

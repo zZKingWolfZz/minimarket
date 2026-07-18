@@ -21,7 +21,26 @@ public class DatabaseInitializer {
             logger.info("Database tables not found. Initializing schema...");
             initializeSchema(conn);
         } else {
-            logger.info("Database tables already exist. Skipping schema initialization.");
+            logger.info("Database tables already exist. Skipping schema initialization. Verifying schema migrations...");
+            runMigrations(conn);
+        }
+    }
+
+    private static void runMigrations(Connection conn) {
+        try (Statement stmt = conn.createStatement()) {
+            boolean hasMetodoPago = false;
+            try (ResultSet rs = conn.getMetaData().getColumns(null, null, "venta", "metodo_pago")) {
+                if (rs.next()) {
+                    hasMetodoPago = true;
+                }
+            }
+            if (!hasMetodoPago) {
+                logger.info("Migration: Adding column metodo_pago to table venta...");
+                stmt.execute("ALTER TABLE venta ADD COLUMN metodo_pago VARCHAR(50) NOT NULL DEFAULT 'Efectivo'");
+                logger.info("Migration completed successfully.");
+            }
+        } catch (SQLException e) {
+            logger.error("Failed to run schema migrations: ", e);
         }
     }
 
