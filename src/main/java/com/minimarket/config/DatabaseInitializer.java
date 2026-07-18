@@ -16,7 +16,7 @@ import java.sql.Statement;
 public class DatabaseInitializer {
     private static final Logger logger = LoggerFactory.getLogger(DatabaseInitializer.class);
 
-    public static void initializeDatabase(Connection conn) {
+    public static void initializeDatabase(Connection conn) throws SQLException {
         if (!tablesExist(conn)) {
             logger.info("Database tables not found. Initializing schema...");
             initializeSchema(conn);
@@ -25,33 +25,41 @@ public class DatabaseInitializer {
         }
     }
 
-    public static boolean tablesExist(Connection conn) {
+    public static boolean tablesExist(Connection conn) throws SQLException {
+        if (conn == null || conn.isClosed() || !conn.isValid(2)) {
+            throw new SQLException("Database connection is closed or invalid.");
+        }
         try (Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery("SELECT 1 FROM usuario LIMIT 1")) {
             return true;
         } catch (SQLException e) {
+            String sqlState = e.getSQLState();
+            // If it is a connection/authentication error, throw it.
+            if (sqlState != null && (sqlState.startsWith("08") || sqlState.startsWith("28") || e.getErrorCode() == 1045)) {
+                throw e;
+            }
             return false;
         }
     }
 
-    public static boolean isDatabaseEmpty(Connection conn) {
+    public static boolean isDatabaseEmpty(Connection conn) throws SQLException {
+        if (conn == null || conn.isClosed() || !conn.isValid(2)) {
+            throw new SQLException("Database connection is closed or invalid.");
+        }
         String sql = "SELECT COUNT(*) FROM usuario";
         try (Statement stmt = conn.createStatement();
              ResultSet rs = stmt.executeQuery(sql)) {
             if (rs.next()) {
                 return rs.getInt(1) == 0;
             }
-        } catch (SQLException e) {
-            logger.error("Error checking if database is empty: ", e);
         }
         return true;
     }
 
-    private static void initializeSchema(Connection conn) {
+    private static void initializeSchema(Connection conn) throws SQLException {
         try (InputStream is = DatabaseInitializer.class.getResourceAsStream("/db_schema.sql")) {
             if (is == null) {
-                logger.error("db_schema.sql resource not found in classpath!");
-                return;
+                throw new SQLException("db_schema.sql resource not found in classpath!");
             }
             
             StringBuilder sb = new StringBuilder();
@@ -64,6 +72,8 @@ public class DatabaseInitializer {
                     }
                     sb.append(line).append("\n");
                 }
+            } catch (IOException e) {
+                throw new SQLException("Error reading db_schema.sql", e);
             }
 
             String[] statements = sb.toString().split(";");
@@ -76,8 +86,8 @@ public class DatabaseInitializer {
                 }
                 logger.info("Database schema initialized successfully.");
             }
-        } catch (IOException | SQLException e) {
-            logger.error("CRITICAL: Failed to initialize database schema: ", e);
+        } catch (IOException e) {
+            throw new SQLException("Error closing schema stream", e);
         }
     }
 }
