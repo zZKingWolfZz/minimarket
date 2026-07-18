@@ -23,3 +23,6 @@ Name: "desktopicon"; Description: "Crear un acceso directo en el Escritorio"; Gr
 
 [Run]
 Filename: "{app}\MiniMarket.exe"; Description: "Ejecutar MiniMarket Yuly"; WorkingDir: "{app}"; Flags: postinstall nowait skipifsilent
+
+[UninstallDelete]
+Type: filesandordirs; Name: "{%USERPROFILE}\.minimarket"
