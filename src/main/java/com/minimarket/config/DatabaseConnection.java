@@ -11,6 +11,7 @@ import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
 import java.util.Properties;
+import com.minimarket.util.SecurityUtils;
 
 public class DatabaseConnection {
 
@@ -57,6 +58,11 @@ public class DatabaseConnection {
         if (userHomeFile.exists()) {
             try (InputStream input = new FileInputStream(userHomeFile)) {
                 properties.load(input);
+                
+                // Decrypt database credentials in memory
+                properties.setProperty("db.username", SecurityUtils.decrypt(properties.getProperty("db.username", "root")));
+                properties.setProperty("db.password", SecurityUtils.decrypt(properties.getProperty("db.password", "")));
+                
                 System.out.println("Loaded database configuration from user home: " + userHomeFile.getAbsolutePath());
                 Class.forName(properties.getProperty("db.driver"));
                 loaded = true;
@@ -71,6 +77,11 @@ public class DatabaseConnection {
             if (externalFile.exists()) {
                 try (InputStream input = new FileInputStream(externalFile)) {
                     properties.load(input);
+                    
+                    // Decrypt database credentials in memory
+                    properties.setProperty("db.username", SecurityUtils.decrypt(properties.getProperty("db.username", "root")));
+                    properties.setProperty("db.password", SecurityUtils.decrypt(properties.getProperty("db.password", "")));
+                    
                     System.out.println("Loaded database configuration from external file: " + externalFile.getAbsolutePath());
                     Class.forName(properties.getProperty("db.driver"));
                     loaded = true;
@@ -85,6 +96,11 @@ public class DatabaseConnection {
             try (InputStream input = getClass().getClassLoader().getResourceAsStream("database.properties")) {
                 if (input != null) {
                     properties.load(input);
+                    
+                    // Decrypt database credentials in memory
+                    properties.setProperty("db.username", SecurityUtils.decrypt(properties.getProperty("db.username", "root")));
+                    properties.setProperty("db.password", SecurityUtils.decrypt(properties.getProperty("db.password", "")));
+                    
                     System.out.println("Loaded database configuration from classpath resource.");
                     Class.forName(properties.getProperty("db.driver"));
                 } else {
@@ -148,8 +164,15 @@ public class DatabaseConnection {
             if (parent != null && !parent.exists()) {
                 parent.mkdirs();
             }
+            
+            // Create an encrypted copy of properties to store on disk
+            Properties encryptedProps = new Properties();
+            encryptedProps.putAll(properties);
+            encryptedProps.setProperty("db.username", SecurityUtils.encrypt(properties.getProperty("db.username")));
+            encryptedProps.setProperty("db.password", SecurityUtils.encrypt(properties.getProperty("db.password")));
+            
             try (OutputStream output = new FileOutputStream(externalFile)) {
-                properties.store(output, "External Database Configuration");
+                encryptedProps.store(output, "External Database Configuration");
                 System.out.println("Saved database configuration to: " + externalFile.getAbsolutePath());
             } catch (IOException e) {
                 System.err.println("Error saving database.properties: " + e.getMessage());
@@ -165,8 +188,15 @@ public class DatabaseConnection {
             if (parent != null && !parent.exists()) {
                 parent.mkdirs();
             }
+            
+            // Create an encrypted copy of properties to store on disk
+            Properties encryptedProps = new Properties();
+            encryptedProps.putAll(properties);
+            encryptedProps.setProperty("db.username", SecurityUtils.encrypt(properties.getProperty("db.username")));
+            encryptedProps.setProperty("db.password", SecurityUtils.encrypt(properties.getProperty("db.password")));
+            
             try (OutputStream output = new FileOutputStream(externalFile)) {
-                properties.store(output, "Updated Property: " + key);
+                encryptedProps.store(output, "Updated Property: " + key);
                 System.out.println("Saved property " + key + "=" + value + " to: " + externalFile.getAbsolutePath());
             } catch (IOException e) {
                 System.err.println("Error saving database properties: " + e.getMessage());
