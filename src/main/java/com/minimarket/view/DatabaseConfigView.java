@@ -71,17 +71,54 @@ public class DatabaseConfigView extends JDialog {
         cardPanel.add(lblSub);
         cardPanel.add(Box.createVerticalStrut(15));
 
+        // Load saved settings or fallbacks
+        DatabaseConnection dbConn = DatabaseConnection.getInstance();
+        String savedHost = dbConn.getProperty("db.host");
+        String savedPort = dbConn.getProperty("db.port");
+        String savedDb = dbConn.getProperty("db.name");
+        String savedUser = dbConn.getProperty("db.username");
+        
+        // Backward compatibility: parse from db.url if host isn't set
+        String savedUrl = dbConn.getProperty("db.url");
+        if (savedHost == null && savedUrl != null && savedUrl.startsWith("jdbc:mysql://")) {
+            try {
+                String cleanUrl = savedUrl.substring("jdbc:mysql://".length());
+                int slashIdx = cleanUrl.indexOf('/');
+                if (slashIdx != -1) {
+                    String hostPort = cleanUrl.substring(0, slashIdx);
+                    String dbParams = cleanUrl.substring(slashIdx + 1);
+                    int colonIdx = hostPort.indexOf(':');
+                    if (colonIdx != -1) {
+                        savedHost = hostPort.substring(0, colonIdx);
+                        savedPort = hostPort.substring(colonIdx + 1);
+                    } else {
+                        savedHost = hostPort;
+                        savedPort = "3306";
+                    }
+                    int qIdx = dbParams.indexOf('?');
+                    savedDb = qIdx != -1 ? dbParams.substring(0, qIdx) : dbParams;
+                }
+            } catch (Exception e) {
+                // Ignore
+            }
+        }
+        
+        if (savedHost == null) savedHost = "localhost";
+        if (savedPort == null) savedPort = "3306";
+        if (savedDb == null) savedDb = "minimarket_yuly";
+        if (savedUser == null) savedUser = "root";
+
         // Form fields
-        cardPanel.add(createFieldPanel("Servidor / IP *", txtHost = new RoundedTextField("localhost", null)));
+        cardPanel.add(createFieldPanel("Servidor / IP *", txtHost = new RoundedTextField(savedHost, null)));
         cardPanel.add(Box.createVerticalStrut(8));
         
-        cardPanel.add(createFieldPanel("Puerto *", txtPort = new RoundedTextField("3306", null)));
+        cardPanel.add(createFieldPanel("Puerto *", txtPort = new RoundedTextField(savedPort, null)));
         cardPanel.add(Box.createVerticalStrut(8));
 
-        cardPanel.add(createFieldPanel("Base de Datos *", txtDatabase = new RoundedTextField("minimarket_yuly", null)));
+        cardPanel.add(createFieldPanel("Base de Datos *", txtDatabase = new RoundedTextField(savedDb, null)));
         cardPanel.add(Box.createVerticalStrut(8));
 
-        cardPanel.add(createFieldPanel("Usuario *", txtUser = new RoundedTextField("root", null)));
+        cardPanel.add(createFieldPanel("Usuario *", txtUser = new RoundedTextField(savedUser, null)));
         cardPanel.add(Box.createVerticalStrut(8));
 
         cardPanel.add(createFieldPanel("Contraseña", txtPassword = new RoundedPasswordField("", null)));

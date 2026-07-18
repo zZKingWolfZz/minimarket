@@ -90,10 +90,9 @@ public class App {
                     // 1. Initialize schema automatically if not exists
                     DatabaseInitializer.initializeDatabase(connection);
 
-                    // 2. Check if first run (no users and setup not completed)
-                    String setupCompleted = DatabaseConnection.getInstance().getProperty("db.setup.completed");
-                    if (!"true".equalsIgnoreCase(setupCompleted) && DatabaseInitializer.isDatabaseEmpty(connection)) {
-                        logger.info("Database is empty. Launching SetupAdminView for first-run administrator setup.");
+                    // 2. Check if first run (no users in database)
+                    if (DatabaseInitializer.isDatabaseEmpty(connection)) {
+                        logger.info("Database is empty (no users found). Launching SetupAdminView for first-run administrator setup.");
                         SetupAdminView setupAdmin = new SetupAdminView(connection);
                         IconUtil.setWindowIcon(setupAdmin);
                         setupAdmin.setVisible(true);

@@ -144,6 +144,9 @@ public class DatabaseConnection {
             // 2. Save the URL (WITHOUT createDatabaseIfNotExist) to properties
             String url = "jdbc:mysql://" + host + ":" + port + "/" + database + "?useSSL=false&serverTimezone=UTC&allowPublicKeyRetrieval=true";
             properties.setProperty("db.url", url);
+            properties.setProperty("db.host", host);
+            properties.setProperty("db.port", port);
+            properties.setProperty("db.name", database);
             properties.setProperty("db.username", username);
             properties.setProperty("db.password", password);
             properties.setProperty("db.driver", "com.mysql.cj.jdbc.Driver");
