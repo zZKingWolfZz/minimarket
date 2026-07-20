@@ -52,6 +52,7 @@ public class InventarioEditView extends JPanel {
     // Buttons
     private JButton btnCancelar;
     private JButton btnGuardar;
+    private JButton btnEliminar;
 
     public InventarioEditView(Producto producto) {
         this.producto = producto;
@@ -139,12 +140,39 @@ public class InventarioEditView extends JPanel {
         JPanel headerRight = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         headerRight.setOpaque(false);
 
+        btnEliminar = new JButton("🗑 Eliminar Producto") {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                if (getModel().isPressed()) {
+                    g2.setColor(new Color(185, 28, 28));
+                } else if (getModel().isRollover()) {
+                    g2.setColor(new Color(220, 38, 38));
+                } else {
+                    g2.setColor(new Color(239, 68, 68));
+                }
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 8, 8);
+                super.paintComponent(g2);
+                g2.dispose();
+            }
+        };
+        btnEliminar.setFont(new Font("Segoe UI", Font.BOLD, 12));
+        btnEliminar.setForeground(Color.WHITE);
+        btnEliminar.setContentAreaFilled(false);
+        btnEliminar.setFocusPainted(false);
+        btnEliminar.setBorder(new EmptyBorder(6, 12, 6, 12));
+        btnEliminar.setCursor(new Cursor(Cursor.HAND_CURSOR));
+        btnEliminar.setPreferredSize(new Dimension(160, 32));
+        btnEliminar.addActionListener(e -> eliminarProducto());
+
         btnCancelar = new OutlineButton("Cancelar");
         btnCancelar.setPreferredSize(new Dimension(85, 32));
 
         btnGuardar = new AccentButton("Guardar Cambios", new SaveIcon());
         btnGuardar.setPreferredSize(new Dimension(160, 32));
 
+        headerRight.add(btnEliminar);
         headerRight.add(btnCancelar);
         headerRight.add(btnGuardar);
 
@@ -589,6 +617,52 @@ public class InventarioEditView extends JPanel {
         if (parentWindow instanceof DashboardView) {
             DashboardView dash = (DashboardView) parentWindow;
             dash.navigateToInventario();
+        }
+    }
+
+    private void eliminarProducto() {
+        if (producto == null) return;
+
+        boolean confirm = CustomDialog.showConfirm(this,
+                "¿Está seguro de eliminar el producto '" + producto.getNombreProducto() + "' del catálogo?\n" +
+                "Esta acción es irreversible y eliminará de forma permanente su stock y registro asociado.",
+                "Eliminar Producto");
+
+        if (confirm) {
+            try {
+                Connection connection = DatabaseConnection.getInstance().getConnection();
+                if (connection == null) {
+                    // Offline demo mode simulation
+                    CustomDialog.showSuccess(this,
+                            "Producto '" + producto.getNombreProducto() + "' eliminado (Modo Demo Offline).",
+                            "Éxito (Modo Demo)");
+                    navigateBackToCatalog();
+                    return;
+                }
+
+                // Delete associated stock entry first (avoid FK violations)
+                StockDAO stockDAO = new StockDAOImpl(connection);
+                Stock stock = stockDAO.findByProductoId(producto.getIdProducto());
+                if (stock != null) {
+                    stockDAO.delete(stock.getIdStock());
+                }
+
+                // Delete product entry
+                ProductoDAO productoDAO = new ProductoDAOImpl(connection);
+                boolean deleted = productoDAO.delete(producto.getIdProducto());
+
+                if (deleted) {
+                    CustomDialog.showSuccess(this,
+                            "¡El producto '" + producto.getNombreProducto() + "' ha sido eliminado exitosamente!",
+                            "Producto Eliminado");
+                    navigateBackToCatalog();
+                } else {
+                    CustomDialog.showError(this, "No se pudo eliminar el producto de la base de datos.", "Error");
+                }
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+                CustomDialog.showError(this, "Error al eliminar producto: " + ex.getMessage(), "Error");
+            }
         }
     }
 

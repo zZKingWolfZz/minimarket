@@ -32,6 +32,12 @@ public class UsuariosAddView extends JPanel {
     private JTable tblUsers;
     private DefaultTableModel tableModel;
 
+    // CRUD Edits and deletion variables
+    private Integer editingUserId = null;
+    private RoundedButton btnCancelEdit;
+    private RoundedButton btnEditUser;
+    private RoundedButton btnDeleteUser;
+
     public UsuariosAddView(Connection connection) {
         this.connection = connection;
         initComponents();
@@ -101,11 +107,40 @@ public class UsuariosAddView extends JPanel {
         fieldsPanel.add(createComboWrapper("Rol de Usuario *", cbRole));
 
         // Register Button container
-        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 0, 0));
+        JPanel btnPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
         btnPanel.setOpaque(false);
+
+        btnCancelEdit = new RoundedButton("Cancelar Edición") {
+            {
+                setForeground(new Color(100, 116, 139));
+            }
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                if (getModel().isPressed()) {
+                    g2.setColor(new Color(226, 232, 240));
+                } else if (getModel().isRollover()) {
+                    g2.setColor(new Color(241, 245, 249));
+                } else {
+                    g2.setColor(new Color(248, 250, 252));
+                }
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+                g2.setColor(new Color(226, 232, 240));
+                g2.drawRoundRect(0, 0, getWidth() - 1, getHeight() - 1, 10, 10);
+                g2.dispose();
+                super.paintComponent(g);
+            }
+        };
+        btnCancelEdit.setPreferredSize(new Dimension(140, 36));
+        btnCancelEdit.setVisible(false);
+        btnCancelEdit.addActionListener(e -> cancelEditing());
+
         btnRegister = new RoundedButton("Registrar y Guardar Usuario");
         btnRegister.setPreferredSize(new Dimension(240, 36));
         btnRegister.addActionListener(e -> handleRegister());
+
+        btnPanel.add(btnCancelEdit);
         btnPanel.add(btnRegister);
 
         // Right side of register row: empty cell in layout, so we add button at the bottom of form card
@@ -210,6 +245,39 @@ public class UsuariosAddView extends JPanel {
         scrollPane.setBorder(BorderFactory.createEmptyBorder());
 
         tableCard.add(scrollPane, BorderLayout.CENTER);
+
+        JPanel actionPanel = new JPanel(new FlowLayout(FlowLayout.RIGHT, 10, 0));
+        actionPanel.setOpaque(false);
+        actionPanel.setBorder(new EmptyBorder(10, 0, 0, 0));
+
+        btnEditUser = new RoundedButton("Editar Seleccionado");
+        btnEditUser.setPreferredSize(new Dimension(180, 32));
+        btnEditUser.addActionListener(e -> startEditingSelectedUser());
+
+        btnDeleteUser = new RoundedButton("Eliminar Seleccionado") {
+            @Override
+            protected void paintComponent(Graphics g) {
+                Graphics2D g2 = (Graphics2D) g.create();
+                g2.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+                if (getModel().isPressed()) {
+                    g2.setColor(new Color(185, 28, 28));
+                } else if (getModel().isRollover()) {
+                    g2.setColor(new Color(220, 38, 38));
+                } else {
+                    g2.setColor(new Color(239, 68, 68));
+                }
+                g2.fillRoundRect(0, 0, getWidth(), getHeight(), 10, 10);
+                super.paintComponent(g2);
+                g2.dispose();
+            }
+        };
+        btnDeleteUser.setPreferredSize(new Dimension(180, 32));
+        btnDeleteUser.addActionListener(e -> deleteSelectedUser());
+
+        actionPanel.add(btnEditUser);
+        actionPanel.add(btnDeleteUser);
+        tableCard.add(actionPanel, BorderLayout.SOUTH);
+
         add(tableCard, BorderLayout.CENTER);
     }
 
@@ -286,79 +354,254 @@ public class UsuariosAddView extends JPanel {
         String apMaterno = txtApellidoMaterno.getText().trim();
         String selectedRole = (String) cbRole.getSelectedItem();
 
-        if (username.isEmpty() || password.isEmpty() || confirmPassword.isEmpty() || nombre.isEmpty() || apPaterno.isEmpty()) {
-            CustomDialog.showWarning(this, "Por favor complete todos los campos obligatorios (*) marcados.", "Campos Requeridos");
-            return;
-        }
-
-        if (!password.equals(confirmPassword)) {
-            CustomDialog.showWarning(this, "Las contraseñas no coinciden. Verifique de nuevo.", "Contraseña Incorrecta");
-            return;
+        // Validation for CREATE vs UPDATE
+        if (editingUserId == null) {
+            // Create validations: Password is required
+            if (username.isEmpty() || password.isEmpty() || confirmPassword.isEmpty() || nombre.isEmpty() || apPaterno.isEmpty()) {
+                CustomDialog.showWarning(this, "Por favor complete todos los campos obligatorios (*) marcados.", "Campos Requeridos");
+                return;
+            }
+            if (!password.equals(confirmPassword)) {
+                CustomDialog.showWarning(this, "Las contraseñas no coinciden. Verifique de nuevo.", "Contraseña Incorrecta");
+                return;
+            }
+        } else {
+            // Update validations: Password is optional
+            if (username.isEmpty() || nombre.isEmpty() || apPaterno.isEmpty()) {
+                CustomDialog.showWarning(this, "Por favor complete todos los campos obligatorios (*) marcados.", "Campos Requeridos");
+                return;
+            }
+            if (!password.isEmpty() && !password.equals(confirmPassword)) {
+                CustomDialog.showWarning(this, "Las contraseñas no coinciden. Verifique de nuevo.", "Contraseña Incorrecta");
+                return;
+            }
         }
 
         try {
             if (connection == null) {
-                CustomDialog.showSuccess(this, "Registrado exitosamente (Modo Demo Offline).", "Éxito");
+                if (editingUserId == null) {
+                    CustomDialog.showSuccess(this, "Registrado exitosamente (Modo Demo Offline).", "Éxito");
+                } else {
+                    CustomDialog.showSuccess(this, "Actualizado exitosamente (Modo Demo Offline).", "Éxito");
+                    cancelEditing();
+                }
+                refreshUsersTable();
                 return;
             }
 
-            // Check uniqueness
-            String checkSql = "SELECT COUNT(*) FROM usuario WHERE username = ?";
-            try (PreparedStatement ps = connection.prepareStatement(checkSql)) {
-                ps.setString(1, username);
-                try (ResultSet rs = ps.executeQuery()) {
-                    if (rs.next() && rs.getInt(1) > 0) {
-                        CustomDialog.showWarning(this, "El nombre de usuario '" + username + "' ya está registrado. Elija otro.", "Usuario Duplicado");
-                        return;
+            UsuarioDAOImpl userDAO = new UsuarioDAOImpl(connection);
+
+            if (editingUserId == null) {
+                // Check uniqueness (Only for new users)
+                String checkSql = "SELECT COUNT(*) FROM usuario WHERE username = ?";
+                try (PreparedStatement ps = connection.prepareStatement(checkSql)) {
+                    ps.setString(1, username);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next() && rs.getInt(1) > 0) {
+                            CustomDialog.showWarning(this, "El nombre de usuario '" + username + "' ya está registrado. Elija otro.", "Usuario Duplicado");
+                            return;
+                        }
                     }
                 }
-            }
 
-            // Insert User
-            String insertUserSql = "INSERT INTO usuario (username, password, nombre, apellido_paterno, apellido_materno, estado) VALUES (?, SHA2(?, 256), ?, ?, ?, 1)";
-            int newUserId = -1;
-            try (PreparedStatement ps = connection.prepareStatement(insertUserSql, Statement.RETURN_GENERATED_KEYS)) {
-                ps.setString(1, username);
-                ps.setString(2, password);
-                ps.setString(3, nombre);
-                ps.setString(4, apPaterno);
-                ps.setString(5, apMaterno);
-                ps.executeUpdate();
-                try (ResultSet keys = ps.getGeneratedKeys()) {
-                    if (keys.next()) {
-                        newUserId = keys.getInt(1);
+                // Insert User
+                String insertUserSql = "INSERT INTO usuario (username, password, nombre, apellido_paterno, apellido_materno, estado) VALUES (?, SHA2(?, 256), ?, ?, ?, 1)";
+                int newUserId = -1;
+                try (PreparedStatement ps = connection.prepareStatement(insertUserSql, Statement.RETURN_GENERATED_KEYS)) {
+                    ps.setString(1, username);
+                    ps.setString(2, password);
+                    ps.setString(3, nombre);
+                    ps.setString(4, apPaterno);
+                    ps.setString(5, apMaterno);
+                    ps.executeUpdate();
+                    try (ResultSet keys = ps.getGeneratedKeys()) {
+                        if (keys.next()) {
+                            newUserId = keys.getInt(1);
+                        }
                     }
                 }
-            }
 
-            // Assign Selected Role (Administrador = 1, Vendedor = 2)
-            int roleId = "Administrador".equalsIgnoreCase(selectedRole) ? 1 : 2;
-            if (newUserId != -1) {
-                String insertRoleSql = "INSERT INTO usuario_rol (Id_usuario, Id_rol) VALUES (?, ?)";
-                try (PreparedStatement psRole = connection.prepareStatement(insertRoleSql)) {
-                    psRole.setInt(1, newUserId);
-                    psRole.setInt(2, roleId);
-                    psRole.executeUpdate();
+                // Assign Selected Role (Administrador = 1, Vendedor = 2)
+                int roleId = "Administrador".equalsIgnoreCase(selectedRole) ? 1 : 2;
+                if (newUserId != -1) {
+                    String insertRoleSql = "INSERT INTO usuario_rol (Id_usuario, Id_rol) VALUES (?, ?)";
+                    try (PreparedStatement psRole = connection.prepareStatement(insertRoleSql)) {
+                        psRole.setInt(1, newUserId);
+                        psRole.setInt(2, roleId);
+                        psRole.executeUpdate();
+                    }
+                }
+
+                CustomDialog.showSuccess(this, "¡Usuario registrado correctamente como " + selectedRole + "!", "Registro Exitoso");
+            } else {
+                // Check uniqueness of username for other users
+                String checkSql = "SELECT COUNT(*) FROM usuario WHERE username = ? AND Id_usuario != ?";
+                try (PreparedStatement ps = connection.prepareStatement(checkSql)) {
+                    ps.setString(1, username);
+                    ps.setInt(2, editingUserId);
+                    try (ResultSet rs = ps.executeQuery()) {
+                        if (rs.next() && rs.getInt(1) > 0) {
+                            CustomDialog.showWarning(this, "El nombre de usuario '" + username + "' ya está registrado por otro usuario.", "Usuario Duplicado");
+                            return;
+                        }
+                    }
+                }
+
+                // Update User Info
+                Usuario u = new Usuario(editingUserId, username, null, nombre, apPaterno, apMaterno, 1);
+                int roleId = "Administrador".equalsIgnoreCase(selectedRole) ? 1 : 2;
+                u.addRol(new Rol(roleId, selectedRole));
+                
+                boolean updated = userDAO.update(u);
+                if (updated) {
+                    // Update password if a new one was provided
+                    if (!password.isEmpty()) {
+                        String updatePassSql = "UPDATE usuario SET password = SHA2(?, 256) WHERE Id_usuario = ?";
+                        try (PreparedStatement ps = connection.prepareStatement(updatePassSql)) {
+                            ps.setString(1, password);
+                            ps.setInt(2, editingUserId);
+                            ps.executeUpdate();
+                        }
+                    }
+                    CustomDialog.showSuccess(this, "¡Usuario actualizado correctamente!", "Actualización Exitosa");
+                    cancelEditing();
+                } else {
+                    CustomDialog.showError(this, "No se pudo actualizar el usuario.", "Error");
                 }
             }
 
-            CustomDialog.showSuccess(this, "¡Usuario registrado correctamente como " + selectedRole + "!", "Registro Exitoso");
-
-            // Clean fields
-            txtUsername.setText("");
-            txtPassword.setText("");
-            txtConfirmPassword.setText("");
-            txtNombre.setText("");
-            txtApellidoPaterno.setText("");
-            txtApellidoMaterno.setText("");
-            cbRole.setSelectedIndex(0);
-
-            // Refresh table
+            // Clean fields & refresh
+            if (editingUserId == null) {
+                txtUsername.setText("");
+                txtPassword.setText("");
+                txtConfirmPassword.setText("");
+                txtNombre.setText("");
+                txtApellidoPaterno.setText("");
+                txtApellidoMaterno.setText("");
+                cbRole.setSelectedIndex(0);
+            }
             refreshUsersTable();
 
         } catch (SQLException ex) {
             ex.printStackTrace();
-            CustomDialog.showError(this, "Error de base de datos al guardar el usuario: " + ex.getMessage(), "Error");
+            CustomDialog.showError(this, "Error de base de datos: " + ex.getMessage(), "Error");
+        }
+    }
+
+    private void cancelEditing() {
+        editingUserId = null;
+        txtUsername.setText("");
+        txtPassword.setText("");
+        txtConfirmPassword.setText("");
+        txtNombre.setText("");
+        txtApellidoPaterno.setText("");
+        txtApellidoMaterno.setText("");
+        cbRole.setSelectedIndex(0);
+
+        btnRegister.setText("Registrar y Guardar Usuario");
+        btnCancelEdit.setVisible(false);
+        tblUsers.clearSelection();
+    }
+
+    private void startEditingSelectedUser() {
+        int selectedRow = tblUsers.getSelectedRow();
+        if (selectedRow == -1) {
+            CustomDialog.showWarning(this, "Por favor seleccione un usuario de la tabla para editar.", "Selección Requerida");
+            return;
+        }
+        int modelRow = tblUsers.convertRowIndexToModel(selectedRow);
+        Integer idUser = (Integer) tableModel.getValueAt(modelRow, 0);
+        String username = (String) tableModel.getValueAt(modelRow, 1);
+        String fullName = (String) tableModel.getValueAt(modelRow, 2);
+        String rol = (String) tableModel.getValueAt(modelRow, 3);
+
+        editingUserId = idUser;
+
+        String nombre = "";
+        String apPaterno = "";
+        String apMaterno = "";
+
+        if (connection != null) {
+            try {
+                UsuarioDAOImpl userDAO = new UsuarioDAOImpl(connection);
+                Usuario u = userDAO.findById(idUser);
+                if (u != null) {
+                    nombre = u.getNombre();
+                    apPaterno = u.getApellidoPaterno();
+                    apMaterno = u.getApellidoMaterno();
+                }
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+            }
+        }
+
+        if (nombre.isEmpty()) {
+            String[] parts = fullName.split(" ");
+            if (parts.length > 0) nombre = parts[0];
+            if (parts.length > 1) apPaterno = parts[1];
+            if (parts.length > 2) {
+                StringBuilder sb = new StringBuilder();
+                for (int i = 2; i < parts.length; i++) {
+                    if (sb.length() > 0) sb.append(" ");
+                    sb.append(parts[i]);
+                }
+                apMaterno = sb.toString();
+            }
+        }
+
+        txtNombre.setText(nombre);
+        txtUsername.setText(username);
+        txtApellidoPaterno.setText(apPaterno);
+        txtApellidoMaterno.setText(apMaterno);
+        txtPassword.setText(""); 
+        txtConfirmPassword.setText("");
+
+        cbRole.setSelectedItem("Administrador".equalsIgnoreCase(rol) ? "Administrador" : "Vendedor");
+
+        btnRegister.setText("Guardar Cambios");
+        btnCancelEdit.setVisible(true);
+    }
+
+    private void deleteSelectedUser() {
+        int selectedRow = tblUsers.getSelectedRow();
+        if (selectedRow == -1) {
+            CustomDialog.showWarning(this, "Por favor seleccione un usuario de la tabla para eliminar.", "Selección Requerida");
+            return;
+        }
+        int modelRow = tblUsers.convertRowIndexToModel(selectedRow);
+        Integer idUser = (Integer) tableModel.getValueAt(modelRow, 0);
+        String username = (String) tableModel.getValueAt(modelRow, 1);
+
+        if (idUser == 1) {
+            CustomDialog.showWarning(this, "No se puede eliminar el usuario administrador principal (ID: 1) por seguridad.", "Acción Bloqueada");
+            return;
+        }
+
+        boolean confirm = CustomDialog.showConfirm(this, 
+                "¿Está seguro de eliminar al usuario '" + username + "'?\nEsta acción es irreversible y eliminará sus datos de acceso.", 
+                "Eliminar Usuario");
+        if (confirm) {
+            try {
+                if (connection == null) {
+                    CustomDialog.showSuccess(this, "Usuario '" + username + "' eliminado (Modo Demo Offline).", "Éxito");
+                    refreshUsersTable();
+                    return;
+                }
+                UsuarioDAOImpl userDAO = new UsuarioDAOImpl(connection);
+                boolean deleted = userDAO.delete(idUser);
+                if (deleted) {
+                    CustomDialog.showSuccess(this, "¡Usuario '" + username + "' eliminado exitosamente!", "Eliminado Correctamente");
+                    if (editingUserId != null && editingUserId.equals(idUser)) {
+                        cancelEditing();
+                    }
+                    refreshUsersTable();
+                } else {
+                    CustomDialog.showError(this, "No se pudo eliminar el usuario.", "Error");
+                }
+            } catch (SQLException ex) {
+                ex.printStackTrace();
+                CustomDialog.showError(this, "Error al eliminar usuario: " + ex.getMessage(), "Error");
+            }
         }
     }
 }
