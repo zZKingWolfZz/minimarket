@@ -640,6 +640,13 @@ public class InventarioEditView extends JPanel {
                     return;
                 }
 
+                // Delete associated sales first (avoid FK violations on venta table)
+                String deleteVentasSql = "DELETE FROM venta WHERE Id_producto = ?";
+                try (PreparedStatement psVenta = connection.prepareStatement(deleteVentasSql)) {
+                    psVenta.setInt(1, producto.getIdProducto());
+                    psVenta.executeUpdate();
+                }
+
                 // Delete associated stock entry first (avoid FK violations)
                 StockDAO stockDAO = new StockDAOImpl(connection);
                 Stock stock = stockDAO.findByProductoId(producto.getIdProducto());
